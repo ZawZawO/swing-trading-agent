@@ -1,0 +1,24 @@
+[
+    {
+        "ticker": "TESLA",
+        "type": "BUY",
+        "entry_price": 420,
+        "entry_date": "2026-02-27",
+        "exit_price": null,
+        "exit_date": null,
+        "shares": 3,
+        "notes": "For 3 weeks swing trading",
+        "id": 1
+    },
+    {
+        "ticker": "GOOGLE",
+        "type": "BUY",
+        "entry_price": 312,
+        "entry_date": "2026-02-27",
+        "exit_price": null,
+        "exit_date": null,
+        "shares": 5,
+        "notes": "Trading for 3 weeks",
+        "id": 2
+    }
+]

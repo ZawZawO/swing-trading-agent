@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip --version)",
+      "Bash(pip install yfinance pandas numpy)",
+      "Bash(python swing_agent.py --detail NVDA)",
+      "Bash(python swing_agent.py AAPL MSFT TSLA NVDA AMD META)",
+      "Bash(python swing_agent.py AAPL MSFT TSLA NVDA AMD META --min-score 0)",
+      "Bash(pip install flask)",
+      "Bash(python -c \"from app import app; print\\(''Flask app imports OK''\\); from swing_agent import analyze_stock, calc_ema, calc_rsi, calc_macd, load_config; print\\(''All swing_agent imports OK''\\)\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(python -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(python -m pip install pandas yfinance numpy flask)",
+      "Bash(C:/Python313/python.exe -c \"import sys; print\\(sys.path\\)\")",
+      "Bash(C:/Python313/python.exe -c \"import pandas; print\\(''pandas OK''\\)\")",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //F //PID 28728)",
+      "Bash(taskkill //F //PID 14704)",
+      "Bash(C:/Python313/python.exe -m pip install --target \"C:/Python313/Lib/site-packages\" pandas yfinance numpy flask)",
+      "Bash(C:/Python313/python.exe -s -c \"import sys; sys.path.insert\\(0, r''C:\\\\Users\\\\zawxy\\\\AppData\\\\Roaming\\\\Python\\\\Python313\\\\site-packages''\\); import pandas; print\\(''OK''\\)\")",
+      "Bash(C:/Python313/python.exe -m venv venv)",
+      "Bash(C:/Users/zawxy/Stocks/venv/Scripts/pip.exe install yfinance pandas numpy flask)",
+      "Bash(python -c \":*)",
+      "Bash(grep -l \"earnings\\\\|get_earnings\\\\|earnings_dates\" \"C:\\\\Users\\\\zawxy\\\\Stocks\\\\venv\\\\Lib\\\\site-packages\\\\yfinance\"/*.py)",
+      "Bash(venv/Scripts/python.exe -c \":*)",
+      "Bash(venv/Scripts/pip.exe install lxml)",
+      "Bash(C:UserszawxyStocksvenvScriptspip.exe freeze)",
+      "Bash(findstr /i \"flask yfinance pandas numpy lxml gunicorn\")"
+    ]
+  }
+}

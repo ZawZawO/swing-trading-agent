@@ -1,0 +1,109 @@
+{
+    "account_size": 300,
+    "alert_settings": {
+        "browser_notifications": true,
+        "sound_enabled": true,
+        "toast_enabled": true
+    },
+    "alerts": {
+        "AMZN": [
+            {
+                "type": "signal_buy",
+                "enabled": true
+            }
+        ]
+    },
+    "auto_refresh_minutes": 5,
+    "ema_fast": 8,
+    "ema_slow": 21,
+    "groups": {},
+    "interval": "1h",
+    "lookback_days": 60,
+    "macd_fast": 12,
+    "macd_signal": 9,
+    "macd_slow": 26,
+    "min_score": 40,
+    "notes": {},
+    "screener_presets": {
+        "Oversold Bounce": {
+            "rsi_min": null,
+            "rsi_max": 35,
+            "score_min": null,
+            "score_max": null,
+            "volume_min": null,
+            "signal_type": null,
+            "ema_trend": null,
+            "change_2m_min": null,
+            "change_2m_max": -10
+        },
+        "Momentum Swing": {
+            "rsi_min": 45,
+            "rsi_max": 70,
+            "score_min": 60,
+            "score_max": null,
+            "volume_min": 1.2,
+            "signal_type": null,
+            "ema_trend": "bullish",
+            "change_2m_min": null,
+            "change_2m_max": null
+        },
+        "Trend Pullback": {
+            "rsi_min": 30,
+            "rsi_max": 50,
+            "score_min": 45,
+            "score_max": null,
+            "volume_min": null,
+            "signal_type": null,
+            "ema_trend": "bullish",
+            "change_2m_min": null,
+            "change_2m_max": null
+        },
+        "High Conviction": {
+            "rsi_min": null,
+            "rsi_max": null,
+            "score_min": 70,
+            "score_max": null,
+            "volume_min": null,
+            "signal_type": "STRONG BUY",
+            "ema_trend": null,
+            "change_2m_min": null,
+            "change_2m_max": null
+        },
+        "Short Setup": {
+            "rsi_min": 65,
+            "rsi_max": null,
+            "score_min": null,
+            "score_max": 35,
+            "volume_min": null,
+            "signal_type": null,
+            "ema_trend": "bearish",
+            "change_2m_min": null,
+            "change_2m_max": null
+        }
+    },
+    "risk_percent": 2,
+    "rsi_period": 14,
+    "volume_spike_multiplier": 1.5,
+    "watchlist": [
+        "AAPL",
+        "MSFT",
+        "GOOGL",
+        "AMZN",
+        "NVDA",
+        "TSLA",
+        "META",
+        "AMD",
+        "NFLX",
+        "SPY",
+        "QQQ",
+        "SOFI",
+        "PLTR",
+        "COIN",
+        "MARA",
+        "SQ",
+        "ROKU",
+        "SNAP",
+        "UBER",
+        "SHOP"
+    ]
+}
