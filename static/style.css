@@ -912,11 +912,11 @@ input:focus { border-color: var(--blue); }
     .screener-filters { padding: 0; }
     .screener-filters.filters-expanded { padding: 10px 16px; }
 
-    /* Table horizontal scroll with frozen ticker */
+    /* Table horizontal scroll with frozen ticker (scan table only) */
     .table-container { padding: 0 0 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    table { min-width: 960px; }
-    th { position: static; }
-    td:first-child, th:first-child {
+    #scan-table { min-width: 960px; }
+    th { position: static; top: auto; }
+    #scan-table td:first-child, #scan-table th:first-child {
         position: sticky; left: 0; z-index: 5;
         background: var(--bg);
     }
