@@ -827,10 +827,11 @@ input:focus { border-color: var(--blue); }
 /* ─── LookForward Columns & Panel ──────────────────────────────────── */
 .lf-cell { font-size: 12px; text-align: center; white-space: nowrap; font-weight: 600; }
 
-.lookforward-table-wrap { overflow-x: auto; }
+.lookforward-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 .lf-detail-table {
-    width: 100%; border-collapse: collapse; font-size: 13px;
+    width: 100%; min-width: 640px; border-collapse: collapse; font-size: 13px;
+    white-space: nowrap;
 }
 .lf-detail-table th {
     text-align: left; padding: 8px 10px; color: var(--text2);
