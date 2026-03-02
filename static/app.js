@@ -1039,7 +1039,8 @@ function showBacktest(ticker) {
 }
 
 async function runBacktest() {
-    const ticker = document.getElementById('bt-ticker').value.trim().toUpperCase();
+    const input = document.getElementById('bt-ticker');
+    const ticker = (input.value.trim() || input.placeholder.trim()).toUpperCase();
     const days = parseInt(document.getElementById('bt-days').value);
     if (!ticker) { alert('Enter a ticker'); return; }
     showLoading(`Backtesting ${ticker}...`);
