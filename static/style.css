@@ -824,6 +824,28 @@ input:focus { border-color: var(--blue); }
 
 .earn-safe { color: var(--text2); }
 
+/* ─── LookForward Columns & Panel ──────────────────────────────────── */
+.lf-cell { font-size: 12px; text-align: center; white-space: nowrap; font-weight: 600; }
+
+.lookforward-table-wrap { overflow-x: auto; }
+
+.lf-detail-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.lf-detail-table th {
+    text-align: left; padding: 8px 10px; color: var(--text2);
+    font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border);
+    position: static; background: none; z-index: auto;
+}
+.lf-detail-table td {
+    padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.lf-detail-table tr:hover { background: rgba(255,255,255,0.03); }
+.lf-horizon { font-weight: 700; color: var(--primary); }
+.lf-note {
+    margin-top: 10px; font-size: 11px; color: var(--text2); font-style: italic;
+}
+
 .earnings-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 8px; padding: 20px; margin-top: 0;

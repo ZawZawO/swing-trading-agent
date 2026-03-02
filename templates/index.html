@@ -13,7 +13,7 @@
     <header>
         <div class="header-left">
             <h1>Swing Trading Agent</h1>
-            <span class="header-subtitle">Hourly | 2-Month Lookback | Swing 2-4 Weeks</span>
+            <span class="header-subtitle">Hourly | 2-Month Lookback | Swing 2-4 Weeks | LookForward: 1W-3M</span>
         </div>
         <div class="header-right">
             <span id="countdown-timer" class="countdown-timer" title="Next refresh"></span>
@@ -109,6 +109,10 @@
                         <th>Stop</th>
                         <th>Target</th>
                         <th>R:R</th>
+                        <th>1W</th>
+                        <th>2W</th>
+                        <th>1M</th>
+                        <th>3M</th>
                         <th>TF</th>
                         <th>Earn</th>
                     </tr>
@@ -177,6 +181,11 @@
             <div class="card">
                 <h3>Signal Reasons</h3>
                 <ul id="signal-reasons" class="reasons-list"></ul>
+            </div>
+            <!-- LookForward Projections -->
+            <div class="card card-full-width">
+                <h3>LookForward Projections</h3>
+                <div class="lookforward-table-wrap" id="lookforward-panel"></div>
             </div>
             <!-- Notes -->
             <div class="card card-full-width">

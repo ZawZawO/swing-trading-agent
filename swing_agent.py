@@ -7,6 +7,9 @@ Designed for 2-4 week hold periods.
 Signals: EMA crossover, RSI, MACD, Volume, Support/Resistance
 Output: BUY / SELL / HOLD with entry, stop-loss, target prices
 
+LookForward: Momentum + volatility projections for 1W/2W/3W/1M/2M/3M
+             Base (trend), Bull (+1σ), Bear (-1σ) price targets per horizon
+
 Usage:
     python swing_agent.py                  # Scan default watchlist
     python swing_agent.py AAPL MSFT TSLA   # Scan specific stocks
@@ -115,6 +118,79 @@ def _cluster_levels(levels, threshold=0.01):
         else:
             clusters.append([lvl])
     return [round(np.mean(c), 2) for c in clusters]
+
+
+# ─── LookForward Projection Engine ──────────────────────────────────────────
+
+LOOKFORWARD_HORIZONS = {
+    "1W":  5,
+    "2W": 10,
+    "3W": 15,
+    "1M": 21,
+    "2M": 42,
+    "3M": 63,
+}
+
+BARS_PER_DAY = 6.5  # ~6.5 trading hours in an hourly dataset
+
+
+def calc_lookforward(df, price, score):
+    """
+    Project price for 6 forward horizons using a log-normal drift model:
+
+    1. Drift (mu)  — mean daily log-return from last 30 trading days
+                     (resampled from hourly to daily).  Captures the actual
+                     compound growth rate, not a raw linear extrapolation.
+    2. Volatility  — daily log-return std-dev, annualised correctly.
+    3. Signal Bias — score (0-100) adds/subtracts up to 0.05% per day to mu.
+                     Acts as a fundamental overlay on top of pure price history.
+
+    Projection formula (geometric Brownian motion, discretised):
+        Base  : P * exp(mu * t)
+        Bull  : P * exp((mu + vol) * t)   [+1sigma envelope]
+        Bear  : P * exp((mu - vol) * t)   [-1sigma envelope]
+
+    Returns dict keyed by horizon label, each containing:
+        base / bull / bear  (price)
+        base_pct / bull_pct / bear_pct  (% change from current price)
+    """
+    close = df["Close"]
+
+    # Resample hourly candles to daily closes for stable drift estimate
+    daily_close = close.resample("1D").last().dropna()
+    if len(daily_close) < 5:
+        # Fallback: use hourly returns scaled to daily
+        daily_log_ret = np.log(close / close.shift(1)).dropna() * np.sqrt(BARS_PER_DAY)
+    else:
+        daily_log_ret = np.log(daily_close / daily_close.shift(1)).dropna()
+
+    # Use last 30 trading days for drift; cap at available data
+    window = min(30, len(daily_log_ret))
+    mu  = daily_log_ret.iloc[-window:].mean()           # mean daily log-return
+    vol = daily_log_ret.iloc[-window:].std()            # daily volatility (1-day σ)
+
+    # Score bias: +0.0005/day at score 100, -0.0005/day at score 0
+    bias = (score - 50) / 50 * 0.0005
+    mu   = mu + bias
+
+    projections = {}
+    for label, days in LOOKFORWARD_HORIZONS.items():
+        # GBM projection over t trading days
+        base_price = round(price * np.exp(mu * days), 2)
+        bull_price = round(price * np.exp((mu + vol) * days), 2)
+        bear_price = round(price * np.exp((mu - vol) * days), 2)
+
+        projections[label] = {
+            "base":     base_price,
+            "bull":     bull_price,
+            "bear":     bear_price,
+            "base_pct": round(((base_price - price) / price) * 100, 1),
+            "bull_pct": round(((bull_price - price) / price) * 100, 1),
+            "bear_pct": round(((bear_price - price) / price) * 100, 1),
+            "days":     days,
+        }
+
+    return projections
 
 
 # ─── Signal Scoring Engine ───────────────────────────────────────────────────
@@ -279,6 +355,8 @@ def analyze_stock(ticker, cfg):
         price_start = close.iloc[0]
         change_2m = round(((price - price_start) / price_start) * 100, 2)
 
+        lookforward = calc_lookforward(df, price, score)
+
         return {
             "ticker": ticker,
             "price": price,
@@ -300,6 +378,7 @@ def analyze_stock(ticker, cfg):
             "shares": shares,
             "position_value": position_value,
             "reasons": reasons,
+            "lookforward": lookforward,
         }
 
     except Exception as e:
@@ -310,16 +389,58 @@ def analyze_stock(ticker, cfg):
 # ─── Display Functions ───────────────────────────────────────────────────────
 
 def print_header():
+    horizons = "  |  ".join(LOOKFORWARD_HORIZONS.keys())
     print()
-    print("=" * 72)
+    print("=" * 88)
     print("  SWING TRADING AGENT - Multi-Signal Scanner")
-    print(f"  {datetime.now().strftime('%Y-%m-%d %H:%M')}  |  Hourly Candles  |  2-Month Lookback")
-    print("=" * 72)
+    print(f"  {datetime.now().strftime('%Y-%m-%d %H:%M')}  |  Hourly Candles  |  "
+          f"LOOKBACK: 2-Month  |  LOOKFORWARD: {horizons}")
+    print("=" * 88)
+
+
+def print_lookforward_table(results):
+    """Print a concise lookforward table: base projection % per horizon for each ticker."""
+    labels = list(LOOKFORWARD_HORIZONS.keys())
+    col_w = 11  # width per horizon column
+
+    header_cols = "".join(f"{lbl:>{col_w}}" for lbl in labels)
+    print()
+    print("  -- LOOKFORWARD PROJECTIONS  (Base % | Bull % | Bear %) " + "-" * 36)
+    print(f"  {'TICKER':<8}  {'PRICE':>8}  " + header_cols)
+    print("  " + "-" * (18 + col_w * len(labels)))
+
+    for r in results:
+        lf = r.get("lookforward", {})
+        if not lf:
+            continue
+        cells = ""
+        for lbl in labels:
+            h = lf[lbl]
+            cells += f"  {h['base_pct']:>+5.1f}%    "
+        print(f"  {r['ticker']:<8}  {r['price']:>8.2f}  {cells}")
+
+    # Second pass: bull/bear envelope summary for each ticker
+    print()
+    print(f"  {'TICKER':<8}  {'CASE':>8}  " + header_cols)
+    print("  " + "." * (18 + col_w * len(labels)))
+    for r in results:
+        lf = r.get("lookforward", {})
+        if not lf:
+            continue
+        cells = ""
+        for lbl in labels:
+            h = lf[lbl]
+            cells += f"  {h['bull_pct']:>+5.1f}%    "
+        print(f"  {r['ticker']:<8}  {'^ BULL':>8}  {cells}")
+        cells = ""
+        for lbl in labels:
+            h = lf[lbl]
+            cells += f"  {h['bear_pct']:>+5.1f}%    "
+        print(f"  {r['ticker']:<8}  {'v BEAR':>8}  {cells}")
+    print()
 
 
 def print_summary_table(results, top_n=None):
-    # Sort by score descending
-    results = sorted(results, key=lambda x: x["score"], reverse=True)
     if top_n:
         results = results[:top_n]
 
@@ -378,6 +499,24 @@ def print_detail(r, cfg):
         print(f"    * {reason}")
     print()
 
+    # ── LookForward projections ──────────────────────────────────────────────
+    lf = r.get("lookforward", {})
+    if lf:
+        print(f"  --- LookForward Projections  (Momentum + Volatility Model) ---")
+        print(f"  {'Horizon':<8}  {'Days':>5}  {'Base Price':>12}  {'Base %':>8}  "
+              f"{'^ Bull':>10}  {'^ Bull%':>8}  {'v Bear':>10}  {'v Bear%':>8}")
+        print("  " + "-" * 78)
+        for label, h in lf.items():
+            bp   = f"${h['base']}"
+            bull = f"${h['bull']}"
+            bear = f"${h['bear']}"
+            print(f"  {label:<8}  {h['days']:>5}  {bp:>12}  {h['base_pct']:>+7.1f}%  "
+                  f"{bull:>10}  {h['bull_pct']:>+7.1f}%  {bear:>10}  {h['bear_pct']:>+7.1f}%")
+        print()
+        print("  Note: Bull = +1sigma envelope  |  Bear = -1sigma envelope  |  "
+              "Based on current momentum & hourly volatility")
+    print()
+
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 
@@ -423,12 +562,16 @@ def main():
     if args.detail:
         print_detail(results[0], cfg)
     else:
+        # Sort once here so both tables use the same ordering
+        results = sorted(results, key=lambda x: x["score"], reverse=True)
         print_summary_table(results, args.top)
+        display = results[:args.top] if args.top else results
+        print_lookforward_table(display)
 
     # Export to CSV
     if args.export and results:
         df = pd.DataFrame(results)
-        df = df.drop(columns=["reasons"])
+        df = df.drop(columns=["reasons", "lookforward"])
         df.to_csv(args.export, index=False)
         print(f"  Exported to {args.export}")
 

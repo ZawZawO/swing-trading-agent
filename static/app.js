@@ -137,6 +137,17 @@ function renderTable(results) {
             earnClass = 'earn-cell earn-safe';
             earnTitle = 'Earnings ' + earnInfo.next_date;
         }
+        // LookForward columns
+        const lf = r.lookforward || {};
+        const lfCell = (key) => {
+            const h = lf[key];
+            if (!h) return '<td class="lf-cell">-</td>';
+            const val = h.base_pct;
+            const cls = val >= 0 ? 'positive' : 'negative';
+            const sign = val >= 0 ? '+' : '';
+            return `<td class="lf-cell ${cls}" title="Bull: ${sign}${h.bull_pct.toFixed(1)}% / Bear: ${h.bear_pct > 0 ? '+' : ''}${h.bear_pct.toFixed(1)}%">${sign}${val.toFixed(1)}%</td>`;
+        };
+
         tr.innerHTML = `
             <td class="ticker-cell">${r.ticker}</td>
             <td>$${r.price.toFixed(2)}</td>
@@ -148,6 +159,10 @@ function renderTable(results) {
             <td>$${r.stop_loss.toFixed(2)}</td>
             <td>$${r.target.toFixed(2)}</td>
             <td>${r.rr_ratio.toFixed(1)}R</td>
+            ${lfCell('1W')}
+            ${lfCell('2W')}
+            ${lfCell('1M')}
+            ${lfCell('3M')}
             <td class="tf-cell ${tfClass}">${tfText}</td>
             <td class="${earnClass}" title="${earnTitle}">${earnText}</td>
         `;
@@ -390,6 +405,9 @@ async function showDetail(ticker) {
         ul.innerHTML = '';
         a.reasons.forEach(reason => { const li = document.createElement('li'); li.textContent = reason; ul.appendChild(li); });
 
+        // LookForward Projections
+        renderLookforwardPanel(a.lookforward, a.price);
+
         // Notes
         const notes = currentConfig.notes || {};
         document.getElementById('stock-note').value = notes[a.ticker] || '';
@@ -551,6 +569,40 @@ function updateEarningsColumn() {
             earnCell.title = '';
         }
     });
+}
+
+function renderLookforwardPanel(lf, price) {
+    const panel = document.getElementById('lookforward-panel');
+    if (!panel) return;
+    if (!lf || Object.keys(lf).length === 0) {
+        panel.innerHTML = '<p style="color:var(--text2)">No projection data available</p>';
+        return;
+    }
+    const horizons = ['1W', '2W', '3W', '1M', '2M', '3M'];
+    let html = '<table class="lf-detail-table"><thead><tr>';
+    html += '<th>Horizon</th><th>Days</th><th>Base</th><th>Base %</th><th>Bull (+1s)</th><th>Bull %</th><th>Bear (-1s)</th><th>Bear %</th>';
+    html += '</tr></thead><tbody>';
+    horizons.forEach(h => {
+        const d = lf[h];
+        if (!d) return;
+        const baseClass = d.base_pct >= 0 ? 'positive' : 'negative';
+        const bullClass = d.bull_pct >= 0 ? 'positive' : 'negative';
+        const bearClass = d.bear_pct >= 0 ? 'positive' : 'negative';
+        const sign = (v) => v >= 0 ? '+' : '';
+        html += `<tr>
+            <td class="lf-horizon">${h}</td>
+            <td>${d.days}</td>
+            <td>$${d.base.toFixed(2)}</td>
+            <td class="${baseClass}">${sign(d.base_pct)}${d.base_pct.toFixed(1)}%</td>
+            <td class="positive">$${d.bull.toFixed(2)}</td>
+            <td class="${bullClass}">${sign(d.bull_pct)}${d.bull_pct.toFixed(1)}%</td>
+            <td class="negative">$${d.bear.toFixed(2)}</td>
+            <td class="${bearClass}">${sign(d.bear_pct)}${d.bear_pct.toFixed(1)}%</td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    html += '<p class="lf-note">Bull = +1 sigma envelope | Bear = -1 sigma envelope | Momentum + Volatility model</p>';
+    panel.innerHTML = html;
 }
 
 function renderEarningsCard(ticker) {
