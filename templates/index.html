@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swing Trading Agent</title>
+    <title>AI Swing Trading Assistant</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://unpkg.com/lightweight-charts@4/dist/lightweight-charts.standalone.production.js"></script>
 </head>
@@ -12,8 +12,8 @@
     <!-- Header -->
     <header>
         <div class="header-left">
-            <h1>Swing Trading Agent</h1>
-            <span class="header-subtitle">Hourly | 2-Month Lookback | Swing 2-4 Weeks | LookForward: 1W-3M</span>
+            <h1>AI Swing Trading Assistant</h1>
+            <span class="header-subtitle">EMA 20/50 · ATR Stops · AI SwingScore · 3-Month Lookback · 2–4 Week Holds</span>
         </div>
         <div class="header-right">
             <span id="countdown-timer" class="countdown-timer" title="Next refresh"></span>
@@ -22,6 +22,7 @@
             <button id="btn-scan" class="btn btn-primary">Scan Now</button>
             <button id="btn-backtest-nav" class="btn" title="Backtest Mode">Backtest</button>
             <button id="btn-portfolio" class="btn" title="Portfolio Tracker">Portfolio</button>
+            <button id="btn-simulator" class="btn btn-sim" title="Trade Simulator">&#127919; Simulator</button>
             <button id="btn-heatmap" class="btn" title="Heatmap View">Heatmap</button>
             <button id="btn-journal" class="btn btn-icon" title="Trade Journal">&#128221;</button>
             <button id="btn-settings" class="btn btn-icon" title="Settings">&#9881;</button>
@@ -31,6 +32,17 @@
     <!-- Price Ticker Bar -->
     <div id="price-ticker" class="price-ticker"></div>
 
+    <!-- Market Overview Banner -->
+    <div id="market-overview" class="market-overview hidden">
+        <div class="market-overview-inner">
+            <div class="market-sentiment-block" id="market-sentiment-block">
+                <span class="market-sentiment-label">Market</span>
+                <span class="market-sentiment-value" id="market-sentiment-text">Loading...</span>
+            </div>
+            <div class="market-indices" id="market-indices"></div>
+        </div>
+    </div>
+
     <!-- Loading Overlay -->
     <div id="loading" class="loading hidden">
         <div class="spinner"></div>
@@ -39,8 +51,18 @@
 
     <!-- View 1: Summary Table -->
     <main id="view-summary">
+        <!-- Top 5 Swing Opportunities -->
+        <div id="top-setups-section" class="top-setups-section hidden">
+            <div class="top-setups-header">
+                <h2 class="top-setups-title">&#127775; Top 5 AI Swing Opportunities</h2>
+                <span class="top-setups-sub">Ranked by SwingScore · ATR-Based Stops · 2-4 Week Holds</span>
+            </div>
+            <div id="top-setups-grid" class="top-setups-grid"></div>
+        </div>
+
         <div class="signal-bar" id="signal-bar"></div>
         <div id="group-tabs" class="group-tabs"></div>
+
         <!-- Smart Screener Filters -->
         <div id="screener-filters" class="screener-filters">
             <div class="filter-toggle-mobile">Filters &#9660;</div>
@@ -52,7 +74,7 @@
                     <input type="number" id="filter-rsi-max" placeholder="Max" class="filter-input-small">
                 </div>
                 <div class="filter-group">
-                    <label>Score</label>
+                    <label>AI Score</label>
                     <input type="number" id="filter-score-min" placeholder="Min" class="filter-input-small">
                     <span class="filter-dash">-</span>
                     <input type="number" id="filter-score-max" placeholder="Max" class="filter-input-small">
@@ -70,6 +92,16 @@
                         <option value="HOLD">HOLD</option>
                         <option value="SELL">SELL</option>
                         <option value="STRONG SELL">STRONG SELL</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Setup</label>
+                    <select id="filter-setup-type" class="filter-select">
+                        <option value="">Any</option>
+                        <option value="Pullback">Pullback</option>
+                        <option value="Breakout">Breakout</option>
+                        <option value="Range Break">Range Break</option>
+                        <option value="Neutral">Neutral</option>
                     </select>
                 </div>
                 <div class="filter-group">
@@ -95,20 +127,25 @@
                 <button id="btn-save-preset" class="btn btn-small">Save as Preset</button>
             </div>
         </div>
+
         <div class="table-container">
             <table id="scan-table">
                 <thead>
                     <tr>
                         <th>Ticker</th>
                         <th>Price</th>
+                        <th>Setup</th>
+                        <th>AI Score</th>
                         <th>Signal</th>
-                        <th>Score</th>
                         <th>RSI</th>
                         <th>Vol</th>
+                        <th>Win%</th>
                         <th>2M %</th>
+                        <th>Entry</th>
                         <th>Stop</th>
                         <th>Target</th>
                         <th>R:R</th>
+                        <th>Shares</th>
                         <th>1W</th>
                         <th>2W</th>
                         <th>1M</th>
@@ -135,8 +172,18 @@
             <div id="detail-signal-badge" class="signal-badge"></div>
         </div>
 
+        <!-- AI Score Card -->
+        <div id="ai-score-card" class="ai-score-card hidden">
+            <div class="ai-score-main">
+                <div class="ai-score-value" id="ai-score-value">-</div>
+                <div class="ai-score-label">AI SwingScore</div>
+            </div>
+            <div class="ai-score-components" id="ai-score-components"></div>
+            <div class="ai-setup-badge" id="ai-setup-badge"></div>
+        </div>
+
         <div class="charts-section">
-            <div class="chart-label">Price + EMA 8/21 + Volume</div>
+            <div class="chart-label">Price + EMA 20/50 + Volume</div>
             <div id="main-chart" class="chart-box"></div>
             <div class="chart-label">RSI (14)</div>
             <div id="rsi-chart" class="chart-box chart-small"></div>
@@ -253,11 +300,8 @@
             <button id="btn-back-portfolio" class="btn btn-back">&larr; Back to Scanner</button>
             <h2>Portfolio Tracker</h2>
         </div>
-        <!-- P&L Hero Banner -->
         <div class="pf-banner" id="pf-banner"></div>
-        <!-- Allocation Bar -->
         <div class="pf-alloc-section" id="pf-alloc-section"></div>
-        <!-- Position List -->
         <div class="pf-list-section">
             <div class="pf-list-head">
                 <span class="pf-list-title">Open Positions</span>
@@ -265,7 +309,6 @@
             </div>
             <div class="pf-list" id="pf-list"></div>
         </div>
-        <!-- Bottom: Equity + Risk side by side -->
         <div class="pf-bottom">
             <div class="pf-equity-wrap">
                 <div class="pf-section-label">Equity Curve</div>
@@ -289,6 +332,108 @@
         <div id="heatmap-container" class="heatmap-container"></div>
     </main>
 
+    <!-- View 6: Trade Simulator -->
+    <main id="view-simulator" class="hidden">
+        <div class="detail-header">
+            <button id="btn-back-simulator" class="btn btn-back">&larr; Back to Scanner</button>
+            <h2>&#127919; Trade Simulator</h2>
+            <span class="sim-capital-badge">Capital: £300 · Risk: 3%/trade</span>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="sim-summary-cards" id="sim-summary-cards"></div>
+
+        <!-- Open New Trade -->
+        <div class="sim-open-section">
+            <h3>Open Simulated Trade</h3>
+            <div class="sim-form-row">
+                <div class="setting-group">
+                    <label>Ticker</label>
+                    <input type="text" id="sim-ticker" placeholder="AAPL" maxlength="6" style="width:90px;text-transform:uppercase">
+                </div>
+                <div class="setting-group">
+                    <label>Entry Price (£)</label>
+                    <input type="number" id="sim-entry" step="0.01" placeholder="0.00" style="width:120px">
+                </div>
+                <div class="setting-group">
+                    <label>Stop Loss (£)</label>
+                    <input type="number" id="sim-stop" step="0.01" placeholder="0.00" style="width:120px">
+                </div>
+                <div class="setting-group">
+                    <label>Target (£)</label>
+                    <input type="number" id="sim-target" step="0.01" placeholder="0.00" style="width:120px">
+                </div>
+                <div class="setting-group">
+                    <label>Shares</label>
+                    <input type="number" id="sim-shares" min="1" placeholder="1" style="width:80px">
+                </div>
+                <div class="setting-group">
+                    <label>Setup Type</label>
+                    <select id="sim-setup">
+                        <option value="Manual">Manual</option>
+                        <option value="Pullback">Pullback</option>
+                        <option value="Breakout">Breakout</option>
+                        <option value="Range Break">Range Break</option>
+                    </select>
+                </div>
+                <div class="setting-group" style="align-self:flex-end">
+                    <button id="btn-sim-open" class="btn btn-primary">Open Trade</button>
+                    <button id="btn-sim-autofill" class="btn btn-small" style="margin-left:6px" title="Fill from last scan result">&#9656; Auto-Fill</button>
+                </div>
+            </div>
+            <div class="sim-risk-hint" id="sim-risk-hint"></div>
+        </div>
+
+        <!-- Open Trades Table -->
+        <div class="sim-trades-section">
+            <h3>Open Trades <span id="sim-open-count" class="sim-count-badge">0</span></h3>
+            <div class="table-container">
+                <table id="sim-open-table">
+                    <thead>
+                        <tr>
+                            <th>Ticker</th>
+                            <th>Setup</th>
+                            <th>Entry</th>
+                            <th>Current</th>
+                            <th>Stop</th>
+                            <th>Target</th>
+                            <th>Shares</th>
+                            <th>Unrealised P&amp;L</th>
+                            <th>P&amp;L %</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sim-open-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Closed Trades Table -->
+        <div class="sim-trades-section" id="sim-closed-section">
+            <h3>Closed Trades <span id="sim-closed-count" class="sim-count-badge">0</span></h3>
+            <div class="table-container">
+                <table id="sim-closed-table">
+                    <thead>
+                        <tr>
+                            <th>Ticker</th>
+                            <th>Setup</th>
+                            <th>Entry</th>
+                            <th>Exit</th>
+                            <th>Shares</th>
+                            <th>P&amp;L (£)</th>
+                            <th>P&amp;L %</th>
+                            <th>Open</th>
+                            <th>Close</th>
+                            <th>Result</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sim-closed-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal hidden">
         <div class="modal-content">
@@ -305,7 +450,6 @@
                         <button id="btn-add-ticker" class="btn btn-small">+ Add</button>
                     </div>
                 </div>
-                <!-- Groups -->
                 <div class="setting-group">
                     <label>Watchlist Groups</label>
                     <div id="groups-editor"></div>
@@ -316,12 +460,12 @@
                 </div>
                 <div class="settings-grid">
                     <div class="setting-group">
-                        <label for="cfg-ema-fast">EMA Fast</label>
+                        <label for="cfg-ema-fast">EMA Fast (20)</label>
                         <input type="number" id="cfg-ema-fast" min="2" max="50">
                     </div>
                     <div class="setting-group">
-                        <label for="cfg-ema-slow">EMA Slow</label>
-                        <input type="number" id="cfg-ema-slow" min="5" max="100">
+                        <label for="cfg-ema-slow">EMA Slow (50)</label>
+                        <input type="number" id="cfg-ema-slow" min="5" max="200">
                     </div>
                     <div class="setting-group">
                         <label for="cfg-rsi">RSI Period</label>
@@ -340,8 +484,8 @@
                         <input type="number" id="cfg-macd-signal" min="3" max="20">
                     </div>
                     <div class="setting-group">
-                        <label for="cfg-account">Account Size ($)</label>
-                        <input type="number" id="cfg-account" min="100" step="100">
+                        <label for="cfg-account">Capital (£)</label>
+                        <input type="number" id="cfg-account" min="100" step="50">
                     </div>
                     <div class="setting-group">
                         <label for="cfg-risk">Risk per Trade (%)</label>
@@ -359,8 +503,15 @@
                         <label for="cfg-refresh">Auto-Refresh (min)</label>
                         <input type="number" id="cfg-refresh" min="1" max="60" step="1">
                     </div>
+                    <div class="setting-group">
+                        <label for="cfg-polygon-key">Polygon API Key</label>
+                        <input type="text" id="cfg-polygon-key" placeholder="Optional — primary data source">
+                    </div>
+                    <div class="setting-group">
+                        <label for="cfg-alpha-key">Alpha Vantage Key</label>
+                        <input type="text" id="cfg-alpha-key" placeholder="Optional — fallback data source">
+                    </div>
                 </div>
-                <!-- Alert Settings -->
                 <div class="setting-group">
                     <label>Alert Settings</label>
                     <div class="alert-toggles">
@@ -369,7 +520,6 @@
                         <label class="toggle-label"><input type="checkbox" id="cfg-toast"> Toast popups</label>
                     </div>
                 </div>
-                <!-- Preset Alert Toggles -->
                 <div class="setting-group">
                     <label>Preset Auto-Alerts</label>
                     <div id="preset-alert-toggles" class="alert-toggles"></div>
@@ -410,6 +560,29 @@
                     <thead><tr><th>Date</th><th>Ticker</th><th>Type</th><th>Entry</th><th>Exit</th><th>Shares</th><th>P&L</th><th>1W</th><th>2W</th><th>3W</th><th>4W</th><th>Status</th><th>Notes</th><th></th></tr></thead>
                     <tbody id="journal-body"></tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Close Sim Trade Modal -->
+    <div id="sim-close-modal" class="modal hidden">
+        <div class="modal-content" style="max-width:420px">
+            <div class="modal-header">
+                <h2>Close Trade</h2>
+                <button id="btn-close-sim-modal" class="btn btn-icon">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label>Exit Price (£)</label>
+                    <input type="number" id="sim-close-price" step="0.01" placeholder="0.00" style="width:160px">
+                </div>
+                <p style="color:var(--text2);font-size:12px;margin-top:8px">
+                    Enter the price at which you are closing this trade.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-sim-close-confirm" class="btn btn-primary">Close Trade</button>
+                <button id="btn-sim-close-cancel" class="btn">Cancel</button>
             </div>
         </div>
     </div>

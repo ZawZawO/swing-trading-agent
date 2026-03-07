@@ -16,6 +16,8 @@ let equityChart = null;
 let earningsData = {};
 let previousPresetMatches = {};
 let presetAlertEnabled = {};
+let simTradeToClose = null;
+let marketOverviewData = null;
 
 /* ─── Init ─────────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
@@ -59,6 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-apply-filters').addEventListener('click', applyFilters);
     document.getElementById('btn-clear-filters').addEventListener('click', clearFilters);
     document.getElementById('btn-save-preset').addEventListener('click', saveFilterPreset);
+    // Trade Simulator
+    document.getElementById('btn-simulator').addEventListener('click', showSimulator);
+    document.getElementById('btn-back-simulator').addEventListener('click', showSummary);
+    document.getElementById('btn-sim-open').addEventListener('click', openSimTrade);
+    document.getElementById('btn-sim-autofill').addEventListener('click', autoFillSimForm);
+    document.getElementById('sim-entry').addEventListener('input', updateSimRiskHint);
+    document.getElementById('sim-stop').addEventListener('input', updateSimRiskHint);
     // Mobile filter toggle
     const filtersEl = document.getElementById('screener-filters');
     filtersEl.addEventListener('click', (e) => {
@@ -94,6 +103,8 @@ async function runScan() {
         // Deferred background fetches
         fetchMTFAlignment();
         fetchEarnings();
+        fetchMarketOverview();
+        fetchTopSetups();
     } catch (err) {
         console.error('Scan failed:', err);
     }
@@ -120,7 +131,8 @@ function renderTable(results) {
         tr.className = 'data-row';
         tr.onclick = () => showDetail(r.ticker);
         const signalClass = r.signal.toLowerCase().replace(' ', '-');
-        const scoreBg = r.score >= 71 ? 'rgba(38,166,154,0.45)' : r.score >= 51 ? 'rgba(38,166,154,0.25)' : r.score >= 31 ? 'rgba(255,213,79,0.25)' : 'rgba(239,83,80,0.25)';
+        const aiScore = r.swing_score != null ? r.swing_score : (r.score || 0);
+        const aiScoreBg = aiScore >= 71 ? 'rgba(38,166,154,0.45)' : aiScore >= 51 ? 'rgba(38,166,154,0.25)' : aiScore >= 31 ? 'rgba(255,213,79,0.25)' : 'rgba(239,83,80,0.25)';
         const changeClass = r.change_2m >= 0 ? 'positive' : 'negative';
         const changeSign = r.change_2m >= 0 ? '+' : '';
         const tfVal = tfAlignment[r.ticker];
@@ -147,18 +159,28 @@ function renderTable(results) {
             const sign = val >= 0 ? '+' : '';
             return `<td class="lf-cell ${cls}" title="Bull: ${sign}${h.bull_pct.toFixed(1)}% / Bear: ${h.bear_pct > 0 ? '+' : ''}${h.bear_pct.toFixed(1)}%">${sign}${val.toFixed(1)}%</td>`;
         };
+        // Setup badge
+        const setupType = r.setup_type || 'Neutral';
+        const setupClass = 'setup-' + setupType.toLowerCase().replace(/\s+/g, '-');
+        // Win rate
+        const winRate = r.win_rate != null ? (r.win_rate * 100).toFixed(0) + '%' : '-';
+        const winClass = r.win_rate != null ? (r.win_rate >= 0.55 ? 'positive' : r.win_rate < 0.45 ? 'negative' : '') : '';
 
         tr.innerHTML = `
             <td class="ticker-cell">${r.ticker}</td>
             <td>$${r.price.toFixed(2)}</td>
+            <td><span class="setup-badge ${setupClass}">${setupType}</span></td>
+            <td><span class="score-fill" style="background:${aiScoreBg}">${aiScore.toFixed(0)}</span></td>
             <td><span class="signal-cell ${signalClass}">${r.signal}</span></td>
-            <td><span class="score-fill" style="background:${scoreBg}">${r.score}</span></td>
             <td>${r.rsi.toFixed(1)}</td>
             <td>${r.volume_ratio.toFixed(1)}x</td>
+            <td class="${winClass}">${winRate}</td>
             <td class="${changeClass}">${changeSign}${r.change_2m.toFixed(1)}%</td>
+            <td>$${(r.entry || r.price).toFixed(2)}</td>
             <td>$${r.stop_loss.toFixed(2)}</td>
             <td>$${r.target.toFixed(2)}</td>
             <td>${r.rr_ratio.toFixed(1)}R</td>
+            <td>${r.shares || '-'}</td>
             ${lfCell('1W')}
             ${lfCell('2W')}
             ${lfCell('1M')}
@@ -245,6 +267,7 @@ function getFilterValues() {
         score_max: parseFloat(document.getElementById('filter-score-max').value) || null,
         volume_min: parseFloat(document.getElementById('filter-volume-min').value) || null,
         signal_type: document.getElementById('filter-signal-type').value || null,
+        setup_type: document.getElementById('filter-setup-type').value || null,
         ema_trend: document.getElementById('filter-ema-trend').value || null,
         change_2m_min: parseFloat(document.getElementById('filter-change-min').value) || null,
         change_2m_max: parseFloat(document.getElementById('filter-change-max').value) || null,
@@ -258,6 +281,7 @@ function setFilterValues(preset) {
     document.getElementById('filter-score-max').value = preset.score_max ?? '';
     document.getElementById('filter-volume-min').value = preset.volume_min ?? '';
     document.getElementById('filter-signal-type').value = preset.signal_type ?? '';
+    document.getElementById('filter-setup-type').value = preset.setup_type ?? '';
     document.getElementById('filter-ema-trend').value = preset.ema_trend ?? '';
     document.getElementById('filter-change-min').value = preset.change_2m_min ?? '';
     document.getElementById('filter-change-max').value = preset.change_2m_max ?? '';
@@ -278,6 +302,7 @@ function applyFilters() {
         if (f.score_max !== null && r.score > f.score_max) return false;
         if (f.volume_min !== null && r.volume_ratio < f.volume_min) return false;
         if (f.signal_type !== null && r.signal !== f.signal_type) return false;
+        if (f.setup_type !== null && r.setup_type !== f.setup_type) return false;
         if (f.ema_trend === 'bullish' && r.ema_fast <= r.ema_slow) return false;
         if (f.ema_trend === 'bearish' && r.ema_fast >= r.ema_slow) return false;
         if (f.change_2m_min !== null && r.change_2m < f.change_2m_min) return false;
@@ -391,12 +416,15 @@ async function showDetail(ticker) {
         badge.textContent = `${a.signal}  ${a.score}/100`;
         badge.className = `signal-badge ${a.signal.toLowerCase().replace(' ', '-')}`;
 
+        const entryPrice = a.entry || a.price;
+        const riskAmt = a.risk_amount != null ? a.risk_amount : null;
         document.getElementById('trade-plan').innerHTML = `
-            <div class="plan-row"><span class="plan-label">Entry</span><span class="plan-value">$${a.price.toFixed(2)}</span></div>
+            <div class="plan-row"><span class="plan-label">Entry</span><span class="plan-value">$${entryPrice.toFixed(2)}</span></div>
             <div class="plan-row"><span class="plan-label">Stop Loss</span><span class="plan-value negative">$${a.stop_loss.toFixed(2)}</span></div>
             <div class="plan-row"><span class="plan-label">Target</span><span class="plan-value positive">$${a.target.toFixed(2)}</span></div>
             <div class="plan-row"><span class="plan-label">Risk / Reward</span><span class="plan-value">1 : ${a.rr_ratio.toFixed(1)}</span></div>
-            <div class="plan-row"><span class="plan-label">Position Size</span><span class="plan-value">${a.shares} shares ($${a.position_value.toFixed(0)})</span></div>
+            <div class="plan-row"><span class="plan-label">Position Size</span><span class="plan-value">${a.shares} shares${riskAmt != null ? ' (£' + riskAmt.toFixed(0) + ' risk)' : ''}</span></div>
+            ${a.atr != null ? `<div class="plan-row"><span class="plan-label">ATR (14)</span><span class="plan-value">$${a.atr.toFixed(2)}</span></div>` : ''}
             <div class="plan-row"><span class="plan-label">Support</span><span class="plan-value">${a.support ? '$' + a.support.toFixed(2) : 'N/A'}</span></div>
             <div class="plan-row"><span class="plan-label">Resistance</span><span class="plan-value">${a.resistance ? '$' + a.resistance.toFixed(2) : 'N/A'}</span></div>
         `;
@@ -418,11 +446,43 @@ async function showDetail(ticker) {
         // Earnings card
         renderEarningsCard(a.ticker);
 
+        // AI Score Card
+        const aiCard = document.getElementById('ai-score-card');
+        if (aiCard) {
+            const swingScore = a.swing_score != null ? a.swing_score : (a.score || 0);
+            const winRate = a.win_rate != null ? (a.win_rate * 100).toFixed(0) : 'N/A';
+            const comps = a.score_components || {};
+            const setupType = a.setup_type || 'Neutral';
+            const scoreColor = swingScore >= 65 ? 'var(--green)' : swingScore >= 45 ? 'var(--yellow)' : 'var(--red)';
+            const setupBadgeClass = 'setup-' + setupType.toLowerCase().replace(/\s+/g, '-');
+            document.getElementById('ai-score-value').textContent = swingScore.toFixed(0);
+            document.getElementById('ai-score-value').style.color = scoreColor;
+            document.getElementById('ai-setup-badge').innerHTML =
+                `<span class="setup-badge ${setupBadgeClass}">${setupType}</span> <span style="color:var(--text2);font-size:12px">Win Rate: ${winRate}%</span>`;
+            const compDefs = [
+                { label: 'Trend Strength (30%)', key: 'trend_strength' },
+                { label: 'Volume Confirm (20%)', key: 'volume_confirmation' },
+                { label: 'Momentum (20%)', key: 'momentum_score' },
+                { label: 'Win Rate (30%)', key: 'win_rate' },
+            ];
+            document.getElementById('ai-score-components').innerHTML = compDefs.map(c => {
+                const val = comps[c.key] != null ? comps[c.key] : 0;
+                const pct = (val * 100).toFixed(0);
+                return `<div class="ai-component-row">
+                    <span class="ai-component-label">${c.label}</span>
+                    <div class="ai-component-bar-bg"><div class="ai-component-bar-fill" style="width:${pct}%"></div></div>
+                    <span class="ai-component-value">${pct}%</span>
+                </div>`;
+            }).join('');
+            aiCard.classList.remove('hidden');
+        }
+
         // Switch view
         document.getElementById('view-summary').classList.add('hidden');
         document.getElementById('view-backtest').classList.add('hidden');
         document.getElementById('view-portfolio').classList.add('hidden');
         document.getElementById('view-heatmap').classList.add('hidden');
+        document.getElementById('view-simulator').classList.add('hidden');
         document.getElementById('view-detail').classList.remove('hidden');
 
         destroyCharts();
@@ -442,6 +502,7 @@ function showSummary() {
     document.getElementById('view-backtest').classList.add('hidden');
     document.getElementById('view-portfolio').classList.add('hidden');
     document.getElementById('view-heatmap').classList.add('hidden');
+    document.getElementById('view-simulator').classList.add('hidden');
     document.getElementById('view-summary').classList.remove('hidden');
 }
 
@@ -1461,9 +1522,9 @@ function renderCharts(data) {
     });
     candleSeries.setData(data.candles);
 
-    const emaFastSeries = charts.main.addLineSeries({ color: '#2196F3', lineWidth: 2, title: 'EMA 8' });
+    const emaFastSeries = charts.main.addLineSeries({ color: '#2196F3', lineWidth: 2, title: 'EMA 20' });
     emaFastSeries.setData(data.ema_fast);
-    const emaSlowSeries = charts.main.addLineSeries({ color: '#FF9800', lineWidth: 2, title: 'EMA 21' });
+    const emaSlowSeries = charts.main.addLineSeries({ color: '#FF9800', lineWidth: 2, title: 'EMA 50' });
     emaSlowSeries.setData(data.ema_slow);
 
     const volumeSeries = charts.main.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: 'volume' });
@@ -1551,6 +1612,8 @@ async function openSettings() {
     document.getElementById('cfg-volume').value = currentConfig.volume_spike_multiplier;
     document.getElementById('cfg-min-score').value = currentConfig.min_score;
     document.getElementById('cfg-refresh').value = currentConfig.auto_refresh_minutes || 5;
+    document.getElementById('cfg-polygon-key').value = currentConfig.polygon_key || '';
+    document.getElementById('cfg-alpha-key').value = currentConfig.alpha_key || '';
 
     const as = currentConfig.alert_settings || {};
     document.getElementById('cfg-sound').checked = as.sound_enabled !== false;
@@ -1621,6 +1684,8 @@ async function saveSettings() {
             toast_enabled: document.getElementById('cfg-toast').checked,
         },
         screener_presets: currentConfig.screener_presets || {},
+        polygon_key: document.getElementById('cfg-polygon-key').value.trim(),
+        alpha_key: document.getElementById('cfg-alpha-key').value.trim(),
     };
     try {
         await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg) });
@@ -1645,3 +1710,299 @@ function showLoading(text) {
 }
 
 function hideLoading() { document.getElementById('loading').classList.add('hidden'); }
+
+/* ─── Market Overview ──────────────────────────────────────────────────── */
+async function fetchMarketOverview() {
+    try {
+        const res = await fetch('/api/market-overview');
+        const data = await res.json();
+        marketOverviewData = data;
+        renderMarketOverview(data);
+    } catch (e) { /* silent */ }
+}
+
+function renderMarketOverview(data) {
+    const el = document.getElementById('market-overview');
+    if (!el || !data || data.error) { if (el) el.classList.add('hidden'); return; }
+    const sentClass = (data.sentiment_class || 'neutral');
+    const sentEl = document.getElementById('market-sentiment-text');
+    if (sentEl) {
+        sentEl.textContent = data.sentiment || 'Unknown';
+        sentEl.className = 'market-sentiment-value sentiment-' + sentClass;
+    }
+    const indicesEl = document.getElementById('market-indices');
+    if (indicesEl && data.indices) {
+        indicesEl.innerHTML = Object.entries(data.indices).map(([sym, info]) => {
+            const aboveText = info.above_ema50 ? '▲ Above EMA50' : '▼ Below EMA50';
+            const aboveColor = info.above_ema50 ? 'var(--green)' : 'var(--red)';
+            return `<div class="market-index-item">
+                <span class="market-index-name">${sym}</span>
+                <span style="color:${aboveColor};font-weight:700;font-size:11px">${aboveText}</span>
+                <span style="color:var(--text2);font-size:11px">EMA50: $${(info.ema50 || 0).toFixed(2)}</span>
+            </div>`;
+        }).join('');
+    }
+    el.classList.remove('hidden');
+}
+
+/* ─── Top Setups ───────────────────────────────────────────────────────── */
+async function fetchTopSetups() {
+    try {
+        const res = await fetch('/api/top-setups');
+        const data = await res.json();
+        renderTopSetups(data.setups || []);
+    } catch (e) { /* silent */ }
+}
+
+function renderTopSetups(setups) {
+    const section = document.getElementById('top-setups-section');
+    const grid = document.getElementById('top-setups-grid');
+    if (!section || !grid) return;
+    if (!setups || setups.length === 0) { section.classList.add('hidden'); return; }
+    section.classList.remove('hidden');
+    grid.innerHTML = '';
+    setups.forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'setup-card';
+        const setupType = r.setup_type || 'Neutral';
+        const setupClass = 'setup-' + setupType.toLowerCase().replace(/\s+/g, '-');
+        const score = r.swing_score != null ? r.swing_score : (r.score || 0);
+        const winPct = r.win_rate != null ? (r.win_rate * 100).toFixed(0) + '%' : '-';
+        const entry = (r.entry || r.price || 0).toFixed(2);
+        card.innerHTML = `
+            <div class="setup-card-header">
+                <span class="setup-card-ticker">${r.ticker}</span>
+                <span class="setup-card-score">${score.toFixed(0)}</span>
+            </div>
+            <div class="setup-card-price">$${(r.price || 0).toFixed(2)}</div>
+            <span class="setup-badge ${setupClass}">${setupType}</span>
+            <div class="setup-card-meta">
+                <span class="setup-card-win">Win: ${winPct}</span>
+                <span class="setup-card-entry">Entry: $${entry}</span>
+            </div>
+        `;
+        card.onclick = () => showDetail(r.ticker);
+        grid.appendChild(card);
+    });
+}
+
+/* ─── Trade Simulator ──────────────────────────────────────────────────── */
+function showSimulator() {
+    destroyCharts();
+    if (equityChart) { equityChart.remove(); equityChart = null; }
+    document.getElementById('view-summary').classList.add('hidden');
+    document.getElementById('view-detail').classList.add('hidden');
+    document.getElementById('view-backtest').classList.add('hidden');
+    document.getElementById('view-portfolio').classList.add('hidden');
+    document.getElementById('view-heatmap').classList.add('hidden');
+    document.getElementById('view-simulator').classList.remove('hidden');
+    loadSimulator();
+}
+
+async function loadSimulator() {
+    showLoading('Loading simulator...');
+    try {
+        const res = await fetch('/api/simulator');
+        const data = await res.json();
+        renderSimSummary(data.summary || {});
+        renderSimOpenTrades(data.open_trades || []);
+        renderSimClosedTrades(data.closed_trades || []);
+    } catch (e) { alert('Failed to load simulator: ' + e.message); }
+    hideLoading();
+}
+
+function renderSimSummary(s) {
+    const container = document.getElementById('sim-summary-cards');
+    if (!container) return;
+    const netCap = s.net_capital != null ? s.net_capital : 300;
+    const totalPnl = s.total_pnl || 0;
+    const winRatePct = s.win_rate != null ? (s.win_rate * 100).toFixed(0) : '-';
+    const winRateNum = s.win_rate != null ? s.win_rate * 100 : null;
+    container.innerHTML = `
+        <div class="sim-card">
+            <div class="sim-card-label">Net Capital</div>
+            <div class="sim-card-value ${netCap >= 300 ? 'positive' : 'negative'}">£${netCap.toFixed(0)}</div>
+        </div>
+        <div class="sim-card">
+            <div class="sim-card-label">Total P&L</div>
+            <div class="sim-card-value ${totalPnl >= 0 ? 'positive' : 'negative'}">${totalPnl >= 0 ? '+' : ''}£${totalPnl.toFixed(2)}</div>
+        </div>
+        <div class="sim-card">
+            <div class="sim-card-label">Win Rate</div>
+            <div class="sim-card-value ${winRateNum != null && winRateNum >= 50 ? 'positive' : 'negative'}">${winRatePct}%</div>
+        </div>
+        <div class="sim-card">
+            <div class="sim-card-label">Total Trades</div>
+            <div class="sim-card-value">${s.total_trades || 0}</div>
+        </div>
+        <div class="sim-card">
+            <div class="sim-card-label">Wins / Losses</div>
+            <div class="sim-card-value"><span class="positive">${s.wins || 0}</span> / <span class="negative">${s.losses || 0}</span></div>
+        </div>
+    `;
+}
+
+function renderSimOpenTrades(trades) {
+    const tbody = document.getElementById('sim-open-body');
+    const countEl = document.getElementById('sim-open-count');
+    if (!tbody) return;
+    if (countEl) countEl.textContent = trades.length;
+    tbody.innerHTML = '';
+    if (trades.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="sim-empty">No open trades — use Auto-Fill or enter details above</td></tr>';
+        return;
+    }
+    trades.forEach(t => {
+        const livePrice = t.live_price;
+        const pnl = t.live_pnl;
+        const pnlClass = pnl != null ? (pnl >= 0 ? 'positive' : 'negative') : '';
+        const pnlText = pnl != null ? `${pnl >= 0 ? '+' : ''}£${Math.abs(pnl).toFixed(2)}` : '-';
+        const pnlPct = (livePrice != null && t.entry_price) ? ((livePrice - t.entry_price) / t.entry_price * 100) : null;
+        const pnlPctText = pnlPct != null ? `${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%` : '-';
+        const setupType = t.setup_type || 'Manual';
+        const setupClass = 'setup-' + setupType.toLowerCase().replace(/\s+/g, '-');
+        const openDate = t.open_time ? new Date(t.open_time * 1000).toLocaleDateString() : '-';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="ticker-cell">${t.ticker}</td>
+            <td><span class="setup-badge ${setupClass}">${setupType}</span></td>
+            <td>$${(t.entry_price || 0).toFixed(2)}</td>
+            <td>${livePrice != null ? '$' + livePrice.toFixed(2) : '-'}</td>
+            <td class="negative">$${(t.stop_loss || 0).toFixed(2)}</td>
+            <td class="positive">$${(t.target || 0).toFixed(2)}</td>
+            <td>${t.shares || 0}</td>
+            <td class="${pnlClass}">${pnlText}</td>
+            <td class="${pnlClass}">${pnlPctText}</td>
+            <td>${openDate}</td>
+            <td>
+                <button class="sim-close-btn" onclick="promptCloseSimTrade('${t.id}', '${t.ticker}', ${livePrice || t.entry_price})">Close</button>
+                <button class="sim-delete-btn" onclick="deleteSimTrade('${t.id}')" title="Delete">×</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderSimClosedTrades(trades) {
+    const tbody = document.getElementById('sim-closed-body');
+    const countEl = document.getElementById('sim-closed-count');
+    if (!tbody) return;
+    if (countEl) countEl.textContent = trades.length;
+    tbody.innerHTML = '';
+    if (trades.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="sim-empty">No closed trades yet</td></tr>';
+        return;
+    }
+    trades.forEach(t => {
+        const pnl = t.pnl || 0;
+        const pnlPct = t.pnl_pct || 0;
+        const pnlClass = pnl >= 0 ? 'positive' : 'negative';
+        const setupType = t.setup_type || '-';
+        const setupClass = 'setup-' + setupType.toLowerCase().replace(/\s+/g, '-');
+        const openDate = t.open_time ? new Date(t.open_time * 1000).toLocaleDateString() : '-';
+        const closeDate = t.close_time ? new Date(t.close_time * 1000).toLocaleDateString() : '-';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="ticker-cell">${t.ticker}</td>
+            <td><span class="setup-badge ${setupClass}">${setupType}</span></td>
+            <td>$${(t.entry_price || 0).toFixed(2)}</td>
+            <td>$${(t.exit_price || 0).toFixed(2)}</td>
+            <td>${t.shares || 0}</td>
+            <td class="${pnlClass}">${pnl >= 0 ? '+' : ''}£${Math.abs(pnl).toFixed(2)}</td>
+            <td class="${pnlClass}">${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%</td>
+            <td>${openDate}</td>
+            <td>${closeDate}</td>
+            <td><span class="signal-cell ${pnl >= 0 ? 'buy' : 'sell'}">${pnl >= 0 ? 'WIN' : 'LOSS'}</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+async function openSimTrade() {
+    const ticker = (document.getElementById('sim-ticker').value || '').toUpperCase().trim();
+    const entry = parseFloat(document.getElementById('sim-entry').value);
+    const shares = parseInt(document.getElementById('sim-shares').value);
+    const stop = parseFloat(document.getElementById('sim-stop').value);
+    const target = parseFloat(document.getElementById('sim-target').value);
+    if (!ticker || !entry || !shares || !stop || !target) {
+        showToast('Fill in all trade fields', 'alert'); return;
+    }
+    const setupType = document.getElementById('sim-setup')?.value || 'Manual';
+    try {
+        const res = await fetch('/api/simulator/open', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ticker, entry_price: entry, shares, stop_loss: stop, target, setup_type: setupType }),
+        });
+        const data = await res.json();
+        if (data.error) { showToast(data.error, 'alert'); return; }
+        showToast(`Opened ${ticker} trade`, 'buy');
+        loadSimulator();
+    } catch (e) { alert('Failed to open trade: ' + e.message); }
+}
+
+function promptCloseSimTrade(id, ticker, currentPrice) {
+    const exitInput = prompt(`Close ${ticker} trade at what price?\n(Last known: $${currentPrice != null ? Number(currentPrice).toFixed(2) : 'N/A'})`);
+    if (exitInput === null) return;
+    const exitPrice = parseFloat(exitInput);
+    if (isNaN(exitPrice) || exitPrice <= 0) { alert('Invalid price'); return; }
+    closeSimTrade(id, exitPrice);
+}
+
+async function closeSimTrade(id, exitPrice) {
+    try {
+        const res = await fetch('/api/simulator/close', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trade_id: id, exit_price: exitPrice }),
+        });
+        const data = await res.json();
+        if (data.error) { showToast(data.error, 'alert'); return; }
+        const pnl = data.trade?.pnl || 0;
+        showToast(`Trade closed: ${pnl >= 0 ? '+' : ''}£${pnl.toFixed(2)}`, pnl >= 0 ? 'buy' : 'sell');
+        loadSimulator();
+    } catch (e) { alert('Failed to close trade: ' + e.message); }
+}
+
+async function deleteSimTrade(id) {
+    if (!confirm('Delete this trade entry?')) return;
+    try {
+        await fetch(`/api/simulator/${id}`, { method: 'DELETE' });
+        showToast('Trade deleted', 'alert');
+        loadSimulator();
+    } catch (e) { alert('Failed to delete: ' + e.message); }
+}
+
+function autoFillSimForm() {
+    if (!scanResults || scanResults.length === 0) { showToast('Run a scan first', 'alert'); return; }
+    const candidates = [...scanResults]
+        .filter(r => r.setup_type && r.setup_type !== 'Neutral')
+        .sort((a, b) => (b.swing_score || b.score || 0) - (a.swing_score || a.score || 0));
+    const top = candidates[0] || scanResults[0];
+    if (!top) return;
+    document.getElementById('sim-ticker').value = top.ticker;
+    document.getElementById('sim-entry').value = (top.entry || top.price).toFixed(2);
+    document.getElementById('sim-stop').value = top.stop_loss.toFixed(2);
+    document.getElementById('sim-target').value = top.target.toFixed(2);
+    if (top.shares) document.getElementById('sim-shares').value = top.shares;
+    const setupSel = document.getElementById('sim-setup');
+    if (setupSel && top.setup_type) setupSel.value = top.setup_type;
+    updateSimRiskHint();
+    showToast(`Auto-filled ${top.ticker}`, 'alert');
+}
+
+function updateSimRiskHint() {
+    const entry = parseFloat(document.getElementById('sim-entry')?.value);
+    const stop = parseFloat(document.getElementById('sim-stop')?.value);
+    const hintEl = document.getElementById('sim-risk-hint');
+    if (!hintEl) return;
+    if (entry > 0 && stop > 0 && entry > stop) {
+        const riskPerShare = entry - stop;
+        const accountSize = currentConfig.account_size || 300;
+        const riskPct = currentConfig.risk_percent || 3;
+        const riskAmount = accountSize * riskPct / 100;
+        const calcShares = Math.max(1, Math.floor(riskAmount / riskPerShare));
+        hintEl.textContent = `Risk: £${riskAmount.toFixed(0)} → ${calcShares} shares @ £${riskPerShare.toFixed(2)}/share`;
+        document.getElementById('sim-shares').value = calcShares;
+    } else {
+        hintEl.textContent = '';
+    }
+}

@@ -971,3 +971,179 @@ input:focus { border-color: var(--blue); }
     .filter-group { flex-wrap: wrap; }
     .filter-input-small { width: 50px; }
 }
+
+/* ─── Market Overview Banner ─────────────────────────────────────────── */
+.market-overview {
+    display: flex; align-items: center; padding: 8px 24px;
+    background: var(--surface2); border-bottom: 1px solid var(--border);
+}
+.market-overview-inner {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap; width: 100%;
+}
+.market-sentiment-block { display: flex; align-items: center; gap: 8px; }
+.market-sentiment-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2);
+}
+.market-sentiment-value {
+    font-weight: 700; font-size: 13px; padding: 3px 10px; border-radius: 4px;
+}
+.sentiment-bullish { background: rgba(38,166,154,0.2); color: var(--green); }
+.sentiment-bearish { background: rgba(239,83,80,0.2); color: var(--red); }
+.sentiment-neutral { background: rgba(255,213,79,0.2); color: var(--yellow); }
+.market-indices { display: flex; gap: 10px; flex-wrap: wrap; }
+.market-index-item {
+    display: flex; align-items: center; gap: 6px; font-size: 12px;
+    padding: 3px 10px; background: var(--surface); border-radius: 5px;
+    border: 1px solid var(--border);
+}
+.market-index-name { font-weight: 700; color: var(--blue); }
+
+/* ─── Top Setups Section ─────────────────────────────────────────────── */
+.top-setups-section {
+    padding: 12px 24px; border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+}
+.top-setups-header {
+    display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px;
+}
+.top-setups-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.top-setups-sub { font-size: 11px; color: var(--text2); }
+.top-setups-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+}
+.setup-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+}
+.setup-card:hover { transform: translateY(-2px); border-color: var(--blue); }
+.setup-card-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+}
+.setup-card-ticker { font-weight: 700; color: var(--blue); font-size: 15px; }
+.setup-card-score {
+    font-weight: 700; font-size: 12px; padding: 2px 7px;
+    border-radius: 4px; background: rgba(38,166,154,0.2); color: var(--green);
+}
+.setup-card-price { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.setup-card-meta {
+    display: flex; justify-content: space-between; align-items: center; margin-top: 6px;
+}
+.setup-card-win { font-size: 11px; color: var(--text2); }
+.setup-card-entry { font-size: 11px; color: var(--text2); }
+
+/* ─── Setup Type Badges ──────────────────────────────────────────────── */
+.setup-badge {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 3px; white-space: nowrap;
+    text-transform: uppercase; letter-spacing: 0.3px;
+}
+.setup-pullback { background: rgba(33,150,243,0.2); color: var(--blue); }
+.setup-breakout { background: rgba(38,166,154,0.2); color: var(--green); }
+.setup-range-break { background: rgba(171,71,188,0.2); color: var(--purple); }
+.setup-neutral { background: rgba(158,158,158,0.15); color: var(--text2); }
+.setup-manual { background: rgba(255,152,0,0.15); color: var(--orange); }
+
+/* ─── AI Score Card ──────────────────────────────────────────────────── */
+.ai-score-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 20px; margin: 12px 24px;
+}
+.ai-score-card h3 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text2); margin-bottom: 14px;
+}
+.ai-score-main { display: flex; align-items: center; gap: 20px; margin-bottom: 14px; }
+.ai-score-value {
+    font-size: 44px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1;
+}
+.ai-score-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2);
+}
+.ai-score-components { display: grid; gap: 8px; }
+.ai-component-row { display: flex; align-items: center; gap: 10px; }
+.ai-component-label { font-size: 12px; color: var(--text2); min-width: 140px; }
+.ai-component-bar-bg {
+    flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+}
+.ai-component-bar-fill {
+    height: 100%; border-radius: 3px; background: var(--blue); transition: width 0.4s;
+}
+.ai-component-value {
+    font-size: 12px; font-weight: 600; min-width: 36px; text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.ai-setup-badge { margin-top: 10px; display: flex; align-items: center; gap: 10px; }
+
+/* ─── Trade Simulator ────────────────────────────────────────────────── */
+.btn-sim { background: rgba(171,71,188,0.15); border-color: var(--purple); color: var(--purple); }
+.btn-sim:hover { background: rgba(171,71,188,0.3); }
+
+.sim-capital-badge {
+    font-size: 12px; color: var(--text2); padding: 4px 12px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+}
+.sim-summary-cards {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; padding: 16px 24px;
+}
+.sim-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; text-align: center;
+}
+.sim-card-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text2); margin-bottom: 6px;
+}
+.sim-card-value { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.sim-open-section {
+    padding: 16px 24px; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.sim-open-section h3 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text2); margin-bottom: 12px; font-weight: 600;
+}
+.sim-form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.sim-risk-hint { font-size: 12px; color: var(--text2); margin-top: 8px; min-height: 16px; }
+
+.sim-trades-section { padding: 16px 24px 0; }
+.sim-trades-section h3 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text2); margin-bottom: 10px; font-weight: 600;
+}
+.sim-count-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1px 8px; font-size: 11px; margin-left: 6px;
+    font-weight: 600; color: var(--text2);
+}
+.sim-close-btn {
+    background: none; border: 1px solid var(--border); color: var(--text2);
+    padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;
+    transition: all 0.15s;
+}
+.sim-close-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
+.sim-delete-btn {
+    background: none; border: none; color: var(--text2);
+    cursor: pointer; font-size: 14px; padding: 2px 5px; transition: color 0.15s; margin-left: 4px;
+}
+.sim-delete-btn:hover { color: var(--red); }
+.sim-empty {
+    text-align: center; color: var(--text2); padding: 20px; font-size: 13px; font-style: italic;
+}
+#sim-open-table th, #sim-closed-table th { position: static; background: var(--surface); }
+
+/* ─── Responsive: Sim + Setups ────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .top-setups-grid { grid-template-columns: repeat(3, 1fr); }
+    .sim-summary-cards { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 600px) {
+    .top-setups-grid { grid-template-columns: repeat(2, 1fr); }
+    .sim-summary-cards { grid-template-columns: 1fr 1fr; }
+    .sim-form-row { gap: 8px; }
+    .market-overview { padding: 8px 16px; }
+    .top-setups-section { padding: 10px 16px; }
+    .sim-trades-section { padding: 12px 16px 0; }
+    .sim-open-section { padding: 12px 16px; }
+}
