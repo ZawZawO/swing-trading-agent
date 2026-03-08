@@ -132,7 +132,7 @@ function renderTable(results) {
         tr.onclick = () => showDetail(r.ticker);
         const signalClass = r.signal.toLowerCase().replace(' ', '-');
         const aiScore = r.swing_score != null ? r.swing_score : (r.score || 0);
-        const aiScoreBg = aiScore >= 71 ? 'rgba(38,166,154,0.45)' : aiScore >= 51 ? 'rgba(38,166,154,0.25)' : aiScore >= 31 ? 'rgba(255,213,79,0.25)' : 'rgba(239,83,80,0.25)';
+        const scoreClass = aiScore >= 70 ? 'score-high' : aiScore >= 50 ? 'score-mid' : '';
         const changeClass = r.change_2m >= 0 ? 'positive' : 'negative';
         const changeSign = r.change_2m >= 0 ? '+' : '';
         const tfVal = tfAlignment[r.ticker];
@@ -170,7 +170,7 @@ function renderTable(results) {
             <td class="ticker-cell">${r.ticker}</td>
             <td>$${r.price.toFixed(2)}</td>
             <td><span class="setup-badge ${setupClass}">${setupType}</span></td>
-            <td><span class="score-fill" style="background:${aiScoreBg}">${aiScore.toFixed(0)}</span></td>
+            <td><span class="score-pill ${scoreClass}">${aiScore.toFixed(0)}</span></td>
             <td><span class="signal-cell ${signalClass}">${r.signal}</span></td>
             <td>${r.rsi.toFixed(1)}</td>
             <td>${r.volume_ratio.toFixed(1)}x</td>
@@ -1741,6 +1741,21 @@ function renderMarketOverview(data) {
                 <span style="color:var(--text2);font-size:11px">EMA50: $${(info.ema50 || 0).toFixed(2)}</span>
             </div>`;
         }).join('');
+    }
+    // Update header nav pills with live SPY / QQQ sentiment
+    if (data.indices) {
+        const spyPill = document.getElementById('nav-spy-pill');
+        const qqqPill = document.getElementById('nav-qqq-pill');
+        const spy = data.indices['SPY'];
+        const qqq = data.indices['QQQ'];
+        if (spyPill && spy) {
+            spyPill.textContent = `SPY ${spy.above_ema50 ? '▲' : '▼'}`;
+            spyPill.className = 'nav-pill ' + (spy.above_ema50 ? 'pill-bull' : 'pill-bear');
+        }
+        if (qqqPill && qqq) {
+            qqqPill.textContent = `QQQ ${qqq.above_ema50 ? '▲' : '▼'}`;
+            qqqPill.className = 'nav-pill ' + (qqq.above_ema50 ? 'pill-bull' : 'pill-bear');
+        }
     }
     el.classList.remove('hidden');
 }

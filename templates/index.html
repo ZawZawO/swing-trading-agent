@@ -4,17 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Swing Trading Assistant</title>
+
+    <!-- TailwindCSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: { preflight: false },
+            theme: {
+                extend: {
+                    colors: {
+                        terminal: '#0B0F14',
+                    }
+                }
+            }
+        }
+    </script>
+
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://unpkg.com/lightweight-charts@4/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
 
-    <!-- Header -->
-    <header>
+    <!-- ═══════════════════════════════════════════════════════ NAVBAR ═══ -->
+    <header id="main-header">
+        <!-- Left: Logo + subtitle -->
         <div class="header-left">
-            <h1>AI Swing Trading Assistant</h1>
-            <span class="header-subtitle">EMA 20/50 · ATR Stops · AI SwingScore · 3-Month Lookback · 2–4 Week Holds</span>
+            <span class="header-logo">⚡ SwingTradingAgent</span>
+            <span class="header-subtitle">EMA 20/50 · ATR Stops · AI SwingScore · 2–4 Week Holds</span>
         </div>
+
+        <!-- Centre: Market Status Pills -->
+        <div class="nav-market-pills" id="nav-market-pills">
+            <span class="nav-pill" id="nav-spy-pill">SPY —</span>
+            <span class="nav-pill" id="nav-qqq-pill">QQQ —</span>
+        </div>
+
+        <!-- Right: Controls -->
         <div class="header-right">
             <span id="countdown-timer" class="countdown-timer" title="Next refresh"></span>
             <button id="btn-pause" class="btn btn-icon btn-pause-icon" title="Pause auto-refresh">&#9646;&#9646;</button>
@@ -49,13 +74,14 @@
         <p id="loading-text">Scanning stocks...</p>
     </div>
 
-    <!-- View 1: Summary Table -->
+    <!-- ═══════════════════════════════════════════════════ VIEW: SUMMARY ═══ -->
     <main id="view-summary">
+
         <!-- Top 5 Swing Opportunities -->
         <div id="top-setups-section" class="top-setups-section hidden">
             <div class="top-setups-header">
-                <h2 class="top-setups-title">&#127775; Top 5 AI Swing Opportunities</h2>
-                <span class="top-setups-sub">Ranked by SwingScore · ATR-Based Stops · 2-4 Week Holds</span>
+                <h2 class="top-setups-title">&#10024; Top 5 AI Swing Opportunities</h2>
+                <span class="top-setups-sub">Ranked by SwingScore &middot; ATR-Based Stops &middot; 2-4 Week Holds</span>
             </div>
             <div id="top-setups-grid" class="top-setups-grid"></div>
         </div>
@@ -159,10 +185,10 @@
         </div>
     </main>
 
-    <!-- View 2: Stock Detail -->
+    <!-- ════════════════════════════════════════════════ VIEW: DETAIL ═══ -->
     <main id="view-detail" class="hidden">
         <div class="detail-header">
-            <button id="btn-back" class="btn btn-back">&larr; Back to Scanner</button>
+            <button id="btn-back" class="btn btn-back">&larr; Back</button>
             <div class="detail-title">
                 <h2 id="detail-ticker"></h2>
                 <span id="detail-price" class="detail-price"></span>
@@ -229,18 +255,15 @@
                 <h3>Signal Reasons</h3>
                 <ul id="signal-reasons" class="reasons-list"></ul>
             </div>
-            <!-- LookForward Projections -->
             <div class="card card-full-width">
                 <h3>LookForward Projections</h3>
                 <div class="lookforward-table-wrap" id="lookforward-panel"></div>
             </div>
-            <!-- Notes -->
             <div class="card card-full-width">
                 <h3>Notes</h3>
                 <textarea id="stock-note" class="note-input" placeholder="Add your notes for this stock..."></textarea>
                 <button id="btn-save-note" class="btn btn-small" style="margin-top:8px;">Save Note</button>
             </div>
-            <!-- Alerts -->
             <div class="card card-full-width">
                 <h3>Price Alerts</h3>
                 <div id="alert-rules"></div>
@@ -258,10 +281,10 @@
         </div>
     </main>
 
-    <!-- View 3: Backtest -->
+    <!-- ══════════════════════════════════════════════ VIEW: BACKTEST ═══ -->
     <main id="view-backtest" class="hidden">
         <div class="detail-header">
-            <button id="btn-back-bt" class="btn btn-back">&larr; Back to Scanner</button>
+            <button id="btn-back-bt" class="btn btn-back">&larr; Back</button>
             <h2>Backtest Mode</h2>
         </div>
         <div class="backtest-controls">
@@ -294,10 +317,10 @@
         </div>
     </main>
 
-    <!-- View 4: Portfolio -->
+    <!-- ═════════════════════════════════════════════ VIEW: PORTFOLIO ═══ -->
     <main id="view-portfolio" class="hidden">
         <div class="detail-header">
-            <button id="btn-back-portfolio" class="btn btn-back">&larr; Back to Scanner</button>
+            <button id="btn-back-portfolio" class="btn btn-back">&larr; Back</button>
             <h2>Portfolio Tracker</h2>
         </div>
         <div class="pf-banner" id="pf-banner"></div>
@@ -318,10 +341,10 @@
         </div>
     </main>
 
-    <!-- View 5: Heatmap -->
+    <!-- ══════════════════════════════════════════════ VIEW: HEATMAP ═══ -->
     <main id="view-heatmap" class="hidden">
         <div class="detail-header">
-            <button id="btn-back-heatmap" class="btn btn-back">&larr; Back to Scanner</button>
+            <button id="btn-back-heatmap" class="btn btn-back">&larr; Back</button>
             <h2>Watchlist Heatmap</h2>
             <div class="heatmap-legend">
                 <span style="color:var(--green)">&#9632; Positive 2M%</span>
@@ -332,18 +355,16 @@
         <div id="heatmap-container" class="heatmap-container"></div>
     </main>
 
-    <!-- View 6: Trade Simulator -->
+    <!-- ═════════════════════════════════════════════ VIEW: SIMULATOR ═══ -->
     <main id="view-simulator" class="hidden">
         <div class="detail-header">
-            <button id="btn-back-simulator" class="btn btn-back">&larr; Back to Scanner</button>
+            <button id="btn-back-simulator" class="btn btn-back">&larr; Back</button>
             <h2>&#127919; Trade Simulator</h2>
-            <span class="sim-capital-badge">Capital: £300 · Risk: 3%/trade</span>
+            <span class="sim-capital-badge">Capital: £300 &middot; Risk: 3%/trade</span>
         </div>
 
-        <!-- Summary Cards -->
         <div class="sim-summary-cards" id="sim-summary-cards"></div>
 
-        <!-- Open New Trade -->
         <div class="sim-open-section">
             <h3>Open Simulated Trade</h3>
             <div class="sim-form-row">
@@ -384,24 +405,15 @@
             <div class="sim-risk-hint" id="sim-risk-hint"></div>
         </div>
 
-        <!-- Open Trades Table -->
         <div class="sim-trades-section">
             <h3>Open Trades <span id="sim-open-count" class="sim-count-badge">0</span></h3>
             <div class="table-container">
                 <table id="sim-open-table">
                     <thead>
                         <tr>
-                            <th>Ticker</th>
-                            <th>Setup</th>
-                            <th>Entry</th>
-                            <th>Current</th>
-                            <th>Stop</th>
-                            <th>Target</th>
-                            <th>Shares</th>
-                            <th>Unrealised P&amp;L</th>
-                            <th>P&amp;L %</th>
-                            <th>Date</th>
-                            <th>Action</th>
+                            <th>Ticker</th><th>Setup</th><th>Entry</th><th>Current</th>
+                            <th>Stop</th><th>Target</th><th>Shares</th>
+                            <th>Unrealised P&amp;L</th><th>P&amp;L %</th><th>Date</th><th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="sim-open-body"></tbody>
@@ -409,23 +421,15 @@
             </div>
         </div>
 
-        <!-- Closed Trades Table -->
         <div class="sim-trades-section" id="sim-closed-section">
             <h3>Closed Trades <span id="sim-closed-count" class="sim-count-badge">0</span></h3>
             <div class="table-container">
                 <table id="sim-closed-table">
                     <thead>
                         <tr>
-                            <th>Ticker</th>
-                            <th>Setup</th>
-                            <th>Entry</th>
-                            <th>Exit</th>
-                            <th>Shares</th>
-                            <th>P&amp;L (£)</th>
-                            <th>P&amp;L %</th>
-                            <th>Open</th>
-                            <th>Close</th>
-                            <th>Result</th>
+                            <th>Ticker</th><th>Setup</th><th>Entry</th><th>Exit</th>
+                            <th>Shares</th><th>P&amp;L (£)</th><th>P&amp;L %</th>
+                            <th>Open</th><th>Close</th><th>Result</th>
                         </tr>
                     </thead>
                     <tbody id="sim-closed-body"></tbody>
@@ -434,7 +438,7 @@
         </div>
     </main>
 
-    <!-- Settings Modal -->
+    <!-- ═══════════════════════════════════════════ MODAL: SETTINGS ═══ -->
     <div id="settings-modal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -532,7 +536,7 @@
         </div>
     </div>
 
-    <!-- Journal Modal -->
+    <!-- ══════════════════════════════════════════ MODAL: JOURNAL ═══ -->
     <div id="journal-modal" class="modal hidden">
         <div class="modal-content modal-wide">
             <div class="modal-header">
@@ -557,14 +561,14 @@
                     <button id="btn-cancel-journal" class="btn btn-small">Cancel</button>
                 </div>
                 <table class="journal-table">
-                    <thead><tr><th>Date</th><th>Ticker</th><th>Type</th><th>Entry</th><th>Exit</th><th>Shares</th><th>P&L</th><th>1W</th><th>2W</th><th>3W</th><th>4W</th><th>Status</th><th>Notes</th><th></th></tr></thead>
+                    <thead><tr><th>Date</th><th>Ticker</th><th>Type</th><th>Entry</th><th>Exit</th><th>Shares</th><th>P&amp;L</th><th>1W</th><th>2W</th><th>3W</th><th>4W</th><th>Status</th><th>Notes</th><th></th></tr></thead>
                     <tbody id="journal-body"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- Close Sim Trade Modal -->
+    <!-- ════════════════════════════════════ MODAL: CLOSE SIM TRADE ═══ -->
     <div id="sim-close-modal" class="modal hidden">
         <div class="modal-content" style="max-width:420px">
             <div class="modal-header">
