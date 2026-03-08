@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-refresh-ai-weekly').addEventListener('click', () => loadAiWeekly(true));
     document.getElementById('btn-refresh-scanner').addEventListener('click', () => loadMarketScanner(true));
 
+    loadSimQuickCard();
     runScan();
 });
 
@@ -112,6 +113,8 @@ async function runScan() {
         fetchEarnings();
         fetchMarketOverview();
         fetchTopSetups();
+        renderWatchlistPanel();
+        fetchScannerTop10Dashboard();
     } catch (err) {
         console.error('Scan failed:', err);
     }
@@ -1779,35 +1782,115 @@ async function fetchTopSetups() {
 }
 
 function renderTopSetups(setups) {
-    const section = document.getElementById('top-setups-section');
-    const grid = document.getElementById('top-setups-grid');
+    const section  = document.getElementById('top-setups-section');
+    const heroSec  = document.getElementById('hero-section');
+    const grid     = document.getElementById('top-setups-grid');
     if (!section || !grid) return;
-    if (!setups || setups.length === 0) { section.classList.add('hidden'); return; }
+
+    // Filter: score >= 70 only, limit to top 3
+    const qualified = (setups || [])
+        .filter(r => (r.swing_score != null ? r.swing_score : (r.score || 0)) >= 70)
+        .slice(0, 3);
+
+    if (qualified.length === 0) {
+        section.classList.add('hidden');
+        if (heroSec) heroSec.classList.add('hidden');
+        return;
+    }
+
+    // §1 Hero Card — best trade
+    if (heroSec) {
+        heroSec.classList.remove('hidden');
+        renderHeroCard(qualified[0]);
+    }
+
+    // §2 Top 3 cards
     section.classList.remove('hidden');
+    const rankEmoji = ['🥇','🥈','🥉'];
     grid.innerHTML = '';
-    setups.forEach(r => {
+    qualified.forEach((r, i) => {
         const card = document.createElement('div');
         card.className = 'setup-card';
-        const setupType = r.setup_type || 'Neutral';
+        const setupType  = r.setup_type || 'Neutral';
         const setupClass = 'setup-' + setupType.toLowerCase().replace(/\s+/g, '-');
-        const score = r.swing_score != null ? r.swing_score : (r.score || 0);
-        const winPct = r.win_rate != null ? (r.win_rate * 100).toFixed(0) + '%' : '-';
-        const entry = (r.entry || r.price || 0).toFixed(2);
+        const score      = r.swing_score != null ? r.swing_score : (r.score || 0);
+        const scoreClass = score >= 80 ? 'score-high' : 'score-mid';
+        const winPct     = r.win_rate != null ? (r.win_rate * 100).toFixed(0) + '%' : '-';
+        const entry      = (r.entry || r.price || 0).toFixed(2);
+        const tgt        = r.target ? `$${r.target.toFixed(2)}` : '-';
+        const retPct     = r.target && r.entry ? ((r.target - r.entry) / r.entry * 100).toFixed(1) : null;
         card.innerHTML = `
             <div class="setup-card-header">
+                <span style="font-size:16px">${rankEmoji[i]}</span>
                 <span class="setup-card-ticker">${r.ticker}</span>
-                <span class="setup-card-score">${score.toFixed(0)}</span>
+                <span class="score-pill ${scoreClass}" style="margin-left:auto">${score.toFixed(0)}</span>
             </div>
             <div class="setup-card-price">$${(r.price || 0).toFixed(2)}</div>
             <span class="setup-badge ${setupClass}">${setupType}</span>
             <div class="setup-card-meta">
                 <span class="setup-card-win">Win: ${winPct}</span>
                 <span class="setup-card-entry">Entry: $${entry}</span>
+                ${retPct ? `<span class="positive" style="font-size:11px;font-weight:700">+${retPct}%</span>` : ''}
             </div>
         `;
         card.onclick = () => showDetail(r.ticker);
         grid.appendChild(card);
     });
+}
+
+/* ── §1 Hero Card ─────────────────────────────────────────────────────────── */
+function renderHeroCard(r) {
+    const el = document.getElementById('hero-card');
+    if (!el || !r) return;
+    const score      = r.swing_score != null ? r.swing_score : (r.score || 0);
+    const setupType  = r.setup_type || 'Neutral';
+    const setupClass = 'setup-' + setupType.toLowerCase().replace(/\s+/g, '-');
+    const entry      = (r.entry  || r.price || 0);
+    const stop       = (r.stop_loss || 0);
+    const target     = (r.target || 0);
+    const retPct     = entry > 0 && target > 0 ? ((target - entry) / entry * 100) : 0;
+    const retSign    = retPct >= 0 ? '+' : '';
+    const signalRaw  = (r.signal || 'HOLD').toLowerCase().replace(' ', '-');
+    const conf       = score >= 80 ? 'High' : score >= 70 ? 'Medium' : 'Low';
+    const confClass  = conf === 'High' ? '' : 'conf-medium';
+    el.innerHTML = `
+        <div class="hero-card-left">
+            <div class="hero-ticker">${r.ticker}</div>
+            <div class="hero-price">$${(r.price || 0).toFixed(2)}</div>
+            <span class="setup-badge ${setupClass}" style="font-size:11px">${setupType}</span>
+        </div>
+        <div class="hero-card-center">
+            <div class="hero-setup-row">
+                <span class="hero-score-badge">${score.toFixed(0)}</span>
+                <span class="hero-confidence ${confClass}">${conf} Conviction</span>
+                <span class="hero-signal-badge ${signalRaw}">${r.signal || 'HOLD'}</span>
+            </div>
+            <div class="hero-levels">
+                <div class="hero-level-item">
+                    <div class="hero-level-label">Entry</div>
+                    <div class="hero-level-value entry">$${entry.toFixed(2)}</div>
+                </div>
+                <div class="hero-level-item">
+                    <div class="hero-level-label">Stop Loss</div>
+                    <div class="hero-level-value stop">$${stop.toFixed(2)}</div>
+                </div>
+                <div class="hero-level-item">
+                    <div class="hero-level-label">Target</div>
+                    <div class="hero-level-value target">$${target.toFixed(2)}</div>
+                </div>
+                <div class="hero-level-item">
+                    <div class="hero-level-label">Expected Return</div>
+                    <div class="hero-level-value ret">${retSign}${retPct.toFixed(1)}%</div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-card-right">
+            <div class="hero-rr">R:R = ${r.rr_ratio ? r.rr_ratio.toFixed(1) : '-'}R</div>
+            ${r.win_rate ? `<div class="hero-rr">Win ${(r.win_rate*100).toFixed(0)}%</div>` : ''}
+        </div>
+    `;
+    el.onclick = () => showDetail(r.ticker);
+    el.title = `Click to view ${r.ticker} detail`;
 }
 
 /* ─── Trade Simulator ──────────────────────────────────────────────────── */
@@ -2183,7 +2266,7 @@ async function loadMarketScanner(forceRefresh = false) {
 
         if (data.status === 'running' || data.status === 'started') {
             statusBar.className   = 'scanner-status-bar status-running';
-            statusBar.innerHTML   = '<div class="scanner-status-dot"></div>Scanning ~160 stocks in the background... auto-refreshing in 15s';
+            statusBar.innerHTML   = '<div class="scanner-status-dot"></div>Scanning 200+ stocks in the background... auto-refreshing in 15s';
             statusBar.classList.remove('hidden');
             // Poll every 15 seconds
             _scannerPollTimer = setTimeout(() => loadMarketScanner(false), 15000);
@@ -2234,4 +2317,144 @@ function renderMarketScanner(rows) {
             <td><span class="confidence-badge ${confClass}">${r.confidence||'Low'}</span></td>
         </tr>`;
     }).join('');
+}
+
+/* ═══════════════════════════════════ §3 TOP-10 DASHBOARD SECTION ═══ */
+let _top10DashboardTimer = null;
+
+async function fetchScannerTop10Dashboard() {
+    clearTimeout(_top10DashboardTimer);
+    const section   = document.getElementById('top10-section');
+    const statusEl  = document.getElementById('top10-status');
+    if (!section) return;
+
+    try {
+        const res  = await fetch('/api/market-scanner');
+        const data = await res.json();
+
+        if (data.status === 'running' || data.status === 'started') {
+            section.classList.remove('hidden');
+            if (statusEl) {
+                statusEl.innerHTML = '<div class="scanner-status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--yellow);animation:pulse 1.2s infinite;margin-right:4px"></div>Scanning...';
+            }
+            _top10DashboardTimer = setTimeout(fetchScannerTop10Dashboard, 15000);
+            return;
+        }
+
+        if (data.status === 'ready' && data.top10 && data.top10.length > 0) {
+            // Filter to score >= 70
+            const qualified = data.top10.filter(r => (r.swing_score || 0) >= 70);
+            if (qualified.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            section.classList.remove('hidden');
+            if (statusEl) {
+                statusEl.innerHTML = `<div class="scanner-status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px"></div>${data.total_scanned || '?'} stocks scanned`;
+            }
+            renderTop10Section(qualified.slice(0, 10));
+        }
+    } catch (e) { /* silent — section stays hidden */ }
+}
+
+function renderTop10Section(rows) {
+    const list = document.getElementById('top10-list');
+    if (!list || !rows || rows.length === 0) return;
+    const rankLabel = (i) => {
+        if (i === 0) return '<span class="top10-rank r1">🥇</span>';
+        if (i === 1) return '<span class="top10-rank r2">🥈</span>';
+        if (i === 2) return '<span class="top10-rank r3">🥉</span>';
+        return `<span class="top10-rank">#${i+1}</span>`;
+    };
+    list.innerHTML = rows.map((r, i) => {
+        const score      = (r.swing_score || 0).toFixed(1);
+        const scoreClass = r.swing_score >= 80 ? 'score-high' : 'score-mid';
+        const setupType  = r.setup_type || 'Neutral';
+        const setupClass = 'setup-' + setupType.toLowerCase().replace(/\s+/g, '-');
+        const tgt        = r.target_pct != null ? (r.target_pct >= 0 ? '+' : '') + r.target_pct + '%' : null;
+        const retClass   = (r.target_pct || 0) >= 0 ? '' : 'negative';
+        const confClass  = 'conf-' + (r.confidence || 'low').toLowerCase();
+        return `
+        <div class="top10-item" onclick="showDetail('${r.ticker}')" title="View ${r.ticker}">
+            ${rankLabel(i)}
+            <div class="top10-body">
+                <div class="top10-ticker-row">
+                    <span class="top10-ticker">${r.ticker}</span>
+                    <span class="score-pill ${scoreClass}" style="font-size:10px;padding:2px 7px">${score}</span>
+                </div>
+                <div class="top10-meta">
+                    <span class="setup-badge ${setupClass}" style="font-size:10px;padding:1px 6px">${setupType}</span>
+                    <span class="confidence-badge ${confClass}" style="font-size:9px;padding:1px 5px">${r.confidence||'Low'}</span>
+                    ${r.entry ? `<span>$${r.entry.toFixed(2)}</span>` : ''}
+                </div>
+            </div>
+            <div class="top10-right">
+                ${tgt ? `<span class="top10-ret ${retClass}">${tgt}</span>` : ''}
+                ${r.target ? `<span style="font-size:10px;color:var(--text3)">→ $${r.target.toFixed(2)}</span>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+/* ═══════════════════════════════════════ §5 WATCHLIST PANEL ═══ */
+function renderWatchlistPanel() {
+    const panel  = document.getElementById('watchlist-panel');
+    const chips  = document.getElementById('watchlist-chips');
+    if (!panel || !chips) return;
+
+    const tickers = (currentConfig && currentConfig.tickers) ? currentConfig.tickers : [];
+    if (tickers.length === 0) { panel.classList.add('hidden'); return; }
+
+    // Build lookup from scan results
+    const resultMap = {};
+    (scanResults || []).forEach(r => { resultMap[r.ticker] = r; });
+
+    chips.innerHTML = tickers.map(t => {
+        const r      = resultMap[t];
+        const signal = r ? r.signal : '';
+        const score  = r ? (r.swing_score != null ? r.swing_score : (r.score || 0)) : 0;
+        const cls    = !signal ? '' :
+                       signal === 'STRONG BUY'  ? 'chip-strong-buy' :
+                       signal === 'BUY'         ? 'chip-buy' :
+                       signal === 'HOLD'        ? 'chip-hold' :
+                       signal === 'SELL'        ? 'chip-sell' :
+                       signal === 'STRONG SELL' ? 'chip-strong-sell' : '';
+        const scoreTxt = score > 0 ? `<span class="chip-score">${score.toFixed(0)}</span>` : '';
+        return `<span class="watchlist-chip ${cls}" onclick="showDetail('${t}')" title="${signal || 'No signal yet'}">${t}${scoreTxt}</span>`;
+    }).join('');
+
+    panel.classList.remove('hidden');
+}
+
+/* ═══════════════════════════════════ §6 SIM QUICK CARD ═══ */
+async function loadSimQuickCard() {
+    const card = document.getElementById('sim-quick-card');
+    if (!card) return;
+    try {
+        const res  = await fetch('/api/simulator');
+        const data = await res.json();
+        const s    = data.summary || {};
+        const open = (data.open_trades || []).length;
+
+        // Unrealised P&L from open trades
+        const unrealised = (data.open_trades || []).reduce((acc, t) => acc + (t.live_pnl || 0), 0);
+        const closed     = (data.closed_trades || []).length;
+        const totalPnl   = s.total_pnl || 0;
+        const winRate    = s.win_rate != null ? (s.win_rate * 100).toFixed(0) + '%' : '—';
+
+        const fmt = (v) => (v >= 0 ? '+' : '') + '£' + Math.abs(v).toFixed(2);
+        const cls = (v) => v >= 0 ? 'positive' : 'negative';
+
+        document.getElementById('sq-open').textContent      = open;
+        document.getElementById('sq-unrealised').textContent = unrealised !== 0 ? fmt(unrealised) : '£0.00';
+        document.getElementById('sq-unrealised').className   = 'sq-value ' + (unrealised !== 0 ? cls(unrealised) : '');
+        document.getElementById('sq-closed').textContent    = closed;
+        document.getElementById('sq-total').textContent     = totalPnl !== 0 ? fmt(totalPnl) : '£0.00';
+        document.getElementById('sq-total').className       = 'sq-value ' + (totalPnl !== 0 ? cls(totalPnl) : '');
+        document.getElementById('sq-winrate').textContent   = winRate;
+
+        card.classList.remove('hidden');
+    } catch (e) {
+        card.classList.add('hidden');
+    }
 }

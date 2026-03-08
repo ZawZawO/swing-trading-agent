@@ -42,38 +42,56 @@ SCANNER_CACHE_FILE = _CACHE_DIR / "scanner_cache.json"
 
 # ── Stock Universes ────────────────────────────────────────────────────────────
 
-# ~160 curated liquid stocks across all major sectors
+# ~250 curated liquid stocks across all major sectors
 LARGE_UNIVERSE = [
     # ─ Mega-cap Tech ──────────────────────────────────────────────────────────
     "AAPL","MSFT","NVDA","META","GOOGL","AMZN","TSLA","AVGO","ORCL","CRM",
     "ADBE","CSCO","INTC","QCOM","TXN","AMD","MU","AMAT","LRCX","KLAC",
-    # ─ Growth Tech ────────────────────────────────────────────────────────────
+    "IBM","HPQ","DELL","STX","WDC","NTAP","GLW",
+    # ─ Growth / Cloud Tech ───────────────────────────────────────────────────
     "NFLX","NOW","PANW","CRWD","SNOW","PLTR","NET","ZS","DDOG","FTNT",
     "ARM","SMCI","MRVL","ON","MCHP","HUBS","TEAM","VEEV","OKTA","TWLO",
+    "GTLB","MDB","ESTC","CFLT","BILL","SMAR","BOX","DBX",
     # ─ Semiconductors ─────────────────────────────────────────────────────────
-    "SWKS","MPWR","WOLF","OLED","ENTG","FORM","ACLS",
+    "SWKS","MPWR","WOLF","OLED","ENTG","FORM","ACLS","ONTO","COHU","CRUS",
+    "SLAB","POWI","PI","AMBA","ALGM",
     # ─ Financials ─────────────────────────────────────────────────────────────
     "JPM","BAC","WFC","GS","MS","C","AXP","BLK","SCHW","V","MA",
     "PYPL","SQ","COIN","HOOD","SOFI","NU","AFRM","MARA","RIOT",
+    "USB","TFC","PNC","FITB","KEY","RF","HBAN","CFG","MTB","ALLY",
+    "ICE","CME","NDAQ","CBOE","SPGI","MCO","FDS",
     # ─ Healthcare / Biotech ───────────────────────────────────────────────────
     "UNH","LLY","ABBV","MRK","AMGN","GILD","BIIB","REGN","VRTX","MRNA",
     "PFE","BMY","ISRG","DXCM","ALGN","IDXX","HCA","CVS","CI",
-    # ─ Consumer ───────────────────────────────────────────────────────────────
+    "TMO","DHR","SYK","BSX","EW","ZBH","BDX","BAX","MDT","ABT",
+    "ILMN","EXAS","NTRA","PCVX","SGEN","RCKT","RXRX","BEAM",
+    # ─ Consumer Discretionary ─────────────────────────────────────────────────
     "WMT","COST","TGT","HD","LOW","NKE","SBUX","MCD","LULU","ROST","TJX",
     "ETSY","SHOP","DASH","LYFT","BABA","PDD",
+    "AMZN_CONS","EBAY","W","RH","DPZ","YUM","CMG","WING","TXRH",
+    # ─ Consumer Staples ────────────────────────────────────────────────────────
+    "PG","KO","PEP","PM","MO","CL","GIS","K","SJM","CAG","CHD",
     # ─ Energy ─────────────────────────────────────────────────────────────────
     "XOM","CVX","COP","SLB","EOG","OXY","DVN","MPC","VLO","PSX","HAL","AR",
-    # ─ Industrial / Aerospace ─────────────────────────────────────────────────
+    "PXD","FANG","KMI","WMB","ET","CTRA","SM","NOG",
+    # ─ Industrial / Aerospace / Defense ──────────────────────────────────────
     "BA","LMT","RTX","NOC","GD","CAT","DE","EMR","HON","GE","MMM",
-    "UPS","FDX","DAL","UAL","AAL","LUV",
-    # ─ Communication ──────────────────────────────────────────────────────────
-    "DIS","CMCSA","T","VZ","TMUS","WBD","PARA",
+    "UPS","FDX","DAL","UAL","AAL","LUV","JBLU","ALK",
+    "PWR","MTZ","FAST","GWW","GNRC","ROP","TT","IR","XYL",
+    # ─ Communication / Media ──────────────────────────────────────────────────
+    "DIS","CMCSA","T","VZ","TMUS","WBD","PARA","NFLX","SNAP","PINS",
+    "RDDT","APP","TTD","DV","IAS",
     # ─ REITs ──────────────────────────────────────────────────────────────────
-    "AMT","PLD","EQIX","CCI","SPG","O",
+    "AMT","PLD","EQIX","CCI","SPG","O","VICI","WELL","ARE","COLD",
+    # ─ Utilities ──────────────────────────────────────────────────────────────
+    "NEE","DUK","SO","AEP","EXC","PCG","XEL","ED","FE",
+    # ─ Materials ──────────────────────────────────────────────────────────────
+    "LIN","APD","SHW","FCX","NUE","STLD","CLF","MP","USLM",
     # ─ Market ETFs (reference) ────────────────────────────────────────────────
-    "SPY","QQQ","IWM","XLK","XLF","XLE","XLV","XLC","XLI",
+    "SPY","QQQ","IWM","XLK","XLF","XLE","XLV","XLC","XLI","XLU","XLB",
 ]
-LARGE_UNIVERSE = list(dict.fromkeys(LARGE_UNIVERSE))   # deduplicate
+# Remove any placeholder/invalid tickers and deduplicate
+LARGE_UNIVERSE = [t for t in dict.fromkeys(LARGE_UNIVERSE) if t != "AMZN_CONS"]
 
 # Focused 80-stock universe for the weekly deep-analysis run
 WEEKLY_UNIVERSE = [
@@ -428,33 +446,47 @@ def _analyze_ticker(ticker: str, df: pd.DataFrame | None = None,
 # ─────────────────────────────────────────────────────────────────────────────
 # Bulk download helper
 # ─────────────────────────────────────────────────────────────────────────────
-def _bulk_download(universe: list) -> dict:
+def _bulk_download(universe: list, chunk_size: int = 100) -> dict:
     """
-    Downloads 3-month daily data for all tickers in one yfinance call.
+    Downloads 3-month daily data for all tickers in chunked yfinance calls.
+    Uses chunks of `chunk_size` to stay within yfinance limits.
     Returns {ticker: DataFrame}.
     """
     dfs = {}
-    try:
-        raw = yf.download(
-            " ".join(universe),
-            period="3mo",
-            interval="1d",
-            group_by="ticker",
-            auto_adjust=True,
-            threads=True,
-            progress=False,
-        )
-        # MultiIndex structure: raw[ticker] → DataFrame with OHLCV columns
-        for ticker in universe:
-            try:
-                if ticker in raw.columns.get_level_values(0):
-                    df = raw[ticker].dropna()
-                    if not df.empty and len(df) >= 30:
-                        dfs[ticker] = df
-            except Exception:
-                pass
-    except Exception as e:
-        logger.warning(f"bulk_download error: {e}")
+    chunks = [universe[i:i + chunk_size] for i in range(0, len(universe), chunk_size)]
+    for chunk in chunks:
+        try:
+            raw = yf.download(
+                " ".join(chunk),
+                period="3mo",
+                interval="1d",
+                group_by="ticker",
+                auto_adjust=True,
+                threads=True,
+                progress=False,
+            )
+            if raw.empty:
+                continue
+            # Single-ticker download returns a flat DataFrame (no MultiIndex)
+            if len(chunk) == 1:
+                ticker = chunk[0]
+                df = raw.dropna()
+                if not df.empty and len(df) >= 30:
+                    dfs[ticker] = df
+            else:
+                # MultiIndex structure: raw[ticker] → DataFrame with OHLCV columns
+                top_level = raw.columns.get_level_values(0)
+                for ticker in chunk:
+                    try:
+                        if ticker in top_level:
+                            df = raw[ticker].dropna()
+                            if not df.empty and len(df) >= 30:
+                                dfs[ticker] = df
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.warning(f"bulk_download chunk error: {e}")
+    logger.info(f"_bulk_download: {len(dfs)}/{len(universe)} tickers loaded")
     return dfs
 
 

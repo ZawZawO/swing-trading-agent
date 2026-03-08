@@ -78,13 +78,41 @@
     <!-- ═══════════════════════════════════════════════════ VIEW: SUMMARY ═══ -->
     <main id="view-summary">
 
-        <!-- Top 5 Swing Opportunities -->
+        <!-- ── §1 AI Trade Signal (Hero Card) ─────────────────────────────── -->
+        <div id="hero-section" class="hero-section hidden">
+            <div class="section-header-bar">
+                <span class="section-header-icon">&#127919;</span>
+                <h2 class="section-header-title">AI Trade Signal</h2>
+                <span class="section-header-sub">Best setup today &middot; Score &ge;70 &middot; Updated on each scan</span>
+            </div>
+            <div id="hero-card" class="hero-card"></div>
+        </div>
+
+        <!-- ── §2 Top 3 AI Trades This Week ───────────────────────────────── -->
         <div id="top-setups-section" class="top-setups-section hidden">
             <div class="top-setups-header">
-                <h2 class="top-setups-title">&#10024; Top 5 AI Swing Opportunities</h2>
-                <span class="top-setups-sub">Ranked by SwingScore &middot; ATR-Based Stops &middot; 2-4 Week Holds</span>
+                <h2 class="top-setups-title">&#129302; Top 3 AI Trades This Week</h2>
+                <span class="top-setups-sub">Score &ge;70 only &middot; AI 5-Step Pipeline &middot; 2&ndash;4 Week Holds</span>
             </div>
             <div id="top-setups-grid" class="top-setups-grid"></div>
+        </div>
+
+        <!-- ── §3 Top 10 AI Swing Trades Today ───────────────────────────── -->
+        <div id="top10-section" class="top10-section hidden">
+            <div class="section-header-bar">
+                <span class="section-header-icon">&#128202;</span>
+                <h2 class="section-header-title">Top 10 AI Swing Trades Today</h2>
+                <span class="section-header-sub">200+ stocks across all sectors &middot; Score &ge;70 only &middot; Daily cache</span>
+                <div id="top10-status" class="top10-status"></div>
+            </div>
+            <div id="top10-list" class="top10-list"></div>
+        </div>
+
+        <!-- ── §4 Scanner Results Table ────────────────────────────────────── -->
+        <div class="section-header-bar section-scanner-bar">
+            <span class="section-header-icon">&#128269;</span>
+            <h2 class="section-header-title">Scanner Results</h2>
+            <span class="section-header-sub">Your watchlist &middot; All signals</span>
         </div>
 
         <div class="signal-bar" id="signal-bar"></div>
@@ -184,6 +212,33 @@
                 <tbody id="scan-body"></tbody>
             </table>
         </div>
+
+        <!-- ── §5 Watchlist ─────────────────────────────────────────────── -->
+        <div id="watchlist-panel" class="watchlist-panel hidden">
+            <div class="section-header-bar">
+                <span class="section-header-icon">&#128204;</span>
+                <h2 class="section-header-title">Watchlist</h2>
+                <span class="section-header-sub">Click any ticker to view detail</span>
+                <button class="btn btn-small btn-icon" onclick="openSettings()" title="Edit watchlist" style="margin-left:auto">&#9881;</button>
+            </div>
+            <div id="watchlist-chips" class="watchlist-chips"></div>
+        </div>
+
+        <!-- ── §6 Trade Simulator Quick Access ─────────────────────────── -->
+        <div id="sim-quick-card" class="sim-quick-card hidden">
+            <div class="sim-quick-header">
+                <span class="sim-quick-title">&#127919; Trade Simulator</span>
+                <button class="btn btn-sim btn-small" onclick="showSimulator()">Open Full Simulator &rarr;</button>
+            </div>
+            <div class="sim-quick-stats" id="sim-quick-stats">
+                <div class="sim-quick-stat"><div class="sq-label">Open Trades</div><div class="sq-value" id="sq-open">&#8212;</div></div>
+                <div class="sim-quick-stat"><div class="sq-label">Unrealised P&amp;L</div><div class="sq-value" id="sq-unrealised">&#8212;</div></div>
+                <div class="sim-quick-stat"><div class="sq-label">Closed Trades</div><div class="sq-value" id="sq-closed">&#8212;</div></div>
+                <div class="sim-quick-stat"><div class="sq-label">Total P&amp;L</div><div class="sq-value" id="sq-total">&#8212;</div></div>
+                <div class="sim-quick-stat"><div class="sq-label">Win Rate</div><div class="sq-value" id="sq-winrate">&#8212;</div></div>
+            </div>
+        </div>
+
     </main>
 
     <!-- ════════════════════════════════════════════════ VIEW: DETAIL ═══ -->
