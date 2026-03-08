@@ -3,827 +3,958 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Swing Trading Assistant</title>
-
-    <!-- TailwindCSS Play CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            corePlugins: { preflight: false },
-            theme: {
-                extend: {
-                    colors: {
-                        terminal: '#0B0F14',
-                    }
-                }
-            }
-        }
-    </script>
-
+    <title>SwingTradingAgent — AI Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://unpkg.com/lightweight-charts@4/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
 
-    <!-- ═══════════════════════════════════════════════════════ NAVBAR ═══ -->
-    <header id="main-header">
-        <!-- Left: Logo + subtitle -->
-        <div class="header-left">
-            <span class="header-logo">⚡ SwingTradingAgent</span>
-            <span class="header-subtitle">EMA 20/50 · ATR Stops · AI SwingScore · 2–4 Week Holds</span>
-        </div>
+<!-- ══════════════════════════════════════════════════════════ APP LAYOUT ═══ -->
+<div class="app-layout" id="app-layout">
 
-        <!-- Centre: Market Status Pills -->
-        <div class="nav-market-pills" id="nav-market-pills">
-            <span class="nav-pill" id="nav-spy-pill">SPY —</span>
-            <span class="nav-pill" id="nav-qqq-pill">QQQ —</span>
-        </div>
-
-        <!-- Right: Controls -->
-        <div class="header-right">
-            <span id="countdown-timer" class="countdown-timer" title="Next refresh"></span>
-            <button id="btn-pause" class="btn btn-icon btn-pause-icon" title="Pause auto-refresh">&#9646;&#9646;</button>
-            <span id="scan-time" class="scan-time"></span>
-            <button id="btn-scan" class="btn btn-primary">Scan Now</button>
-            <button id="btn-ai-weekly" class="btn btn-ai-weekly" title="Top 3 AI Trades This Week">&#129302; AI This Week</button>
-            <button id="btn-backtest-nav" class="btn" title="Backtest Mode">Backtest</button>
-            <button id="btn-portfolio" class="btn" title="Portfolio Tracker">Portfolio</button>
-            <button id="btn-simulator" class="btn btn-sim" title="Trade Simulator">&#127919; Simulator</button>
-            <button id="btn-heatmap" class="btn" title="Heatmap View">Heatmap</button>
-            <button id="btn-journal" class="btn btn-icon" title="Trade Journal">&#128221;</button>
-            <button id="btn-settings" class="btn btn-icon" title="Settings">&#9881;</button>
-        </div>
-    </header>
-
-    <!-- Price Ticker Bar -->
-    <div id="price-ticker" class="price-ticker"></div>
-
-    <!-- Market Overview Banner -->
-    <div id="market-overview" class="market-overview hidden">
-        <div class="market-overview-inner">
-            <div class="market-sentiment-block" id="market-sentiment-block">
-                <span class="market-sentiment-label">Market</span>
-                <span class="market-sentiment-value" id="market-sentiment-text">Loading...</span>
+    <!-- ══════════════════════════════════════════════════════════ SIDEBAR ═══ -->
+    <aside id="sidebar" class="sidebar">
+        <!-- Logo -->
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">📈</div>
+            <div class="sidebar-logo-text">
+                <span class="sidebar-logo-name">SwingAgent</span>
+                <span class="sidebar-logo-sub">AI Trading Suite</span>
             </div>
-            <div class="market-indices" id="market-indices"></div>
-        </div>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div id="loading" class="loading hidden">
-        <div class="spinner"></div>
-        <p id="loading-text">Scanning stocks...</p>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════ VIEW: SUMMARY ═══ -->
-    <main id="view-summary">
-
-        <!-- ── §1 AI Trade Signal (Hero Card) ─────────────────────────────── -->
-        <div id="hero-section" class="hero-section hidden">
-            <div class="section-header-bar">
-                <span class="section-header-icon">&#127919;</span>
-                <h2 class="section-header-title">AI Trade Signal</h2>
-                <span class="section-header-sub">Best setup today &middot; Score &ge;70 &middot; Updated on each scan</span>
-            </div>
-            <div id="hero-card" class="hero-card"></div>
         </div>
 
-        <!-- ── §2 Top 3 AI Trades This Week ───────────────────────────────── -->
-        <div id="top-setups-section" class="top-setups-section hidden">
-            <div class="top-setups-header">
-                <h2 class="top-setups-title">&#129302; Top 3 AI Trades This Week</h2>
-                <span class="top-setups-sub">Score &ge;70 only &middot; AI 5-Step Pipeline &middot; 2&ndash;4 Week Holds</span>
-            </div>
-            <div id="top-setups-grid" class="top-setups-grid"></div>
+        <!-- Nav -->
+        <nav class="sidebar-nav">
+            <button class="nav-item active" id="nav-dashboard" onclick="sidebarNav('dashboard')">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+                </span>
+                <span class="nav-label">Dashboard</span>
+            </button>
+            <button class="nav-item" id="nav-ai-weekly" onclick="sidebarNav('ai-weekly')">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                </span>
+                <span class="nav-label">AI This Week</span>
+            </button>
+            <button class="nav-item" id="nav-top10" onclick="sidebarNav('top10')">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </span>
+                <span class="nav-label">Top 10 Today</span>
+            </button>
+            <button class="nav-item" id="nav-scanner" onclick="sidebarNav('scanner')">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </span>
+                <span class="nav-label">Scanner</span>
+            </button>
+            <button class="nav-item" id="nav-watchlist" onclick="sidebarNav('watchlist')">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </span>
+                <span class="nav-label">Watchlist</span>
+            </button>
+            <button class="nav-item" id="nav-simulator" onclick="sidebarNav('simulator')">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </span>
+                <span class="nav-label">Simulator</span>
+            </button>
+            <button class="nav-item" id="nav-backtest" onclick="sidebarNav('backtest')">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+                </span>
+                <span class="nav-label">Backtest</span>
+            </button>
+            <button class="nav-item" id="nav-portfolio" onclick="sidebarNav('portfolio')">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                </span>
+                <span class="nav-label">Portfolio</span>
+            </button>
+            <button class="nav-item" id="nav-heatmap" onclick="sidebarNav('heatmap')">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="4" height="4"/><rect x="10" y="3" width="4" height="4"/><rect x="17" y="3" width="4" height="4"/><rect x="3" y="10" width="4" height="4"/><rect x="10" y="10" width="4" height="4"/><rect x="17" y="10" width="4" height="4"/><rect x="3" y="17" width="4" height="4"/><rect x="10" y="17" width="4" height="4"/><rect x="17" y="17" width="4" height="4"/></svg>
+                </span>
+                <span class="nav-label">Heatmap</span>
+            </button>
+        </nav>
+
+        <!-- Bottom nav items -->
+        <div class="sidebar-bottom">
+            <button class="nav-item nav-item-bottom" onclick="openSettings()">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </span>
+                <span class="nav-label">Settings</span>
+            </button>
         </div>
+    </aside>
 
-        <!-- ── §3 Top 10 AI Swing Trades Today ───────────────────────────── -->
-        <div id="top10-section" class="top10-section hidden">
-            <div class="section-header-bar">
-                <span class="section-header-icon">&#128202;</span>
-                <h2 class="section-header-title">Top 10 AI Swing Trades Today</h2>
-                <span class="section-header-sub">200+ stocks across all sectors &middot; Score &ge;70 only &middot; Daily cache</span>
-                <div id="top10-status" class="top10-status"></div>
-            </div>
-            <div id="top10-list" class="top10-list"></div>
-        </div>
+    <!-- Sidebar overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
-        <!-- ── §4 Scanner Results Table ────────────────────────────────────── -->
-        <div class="section-header-bar section-scanner-bar">
-            <span class="section-header-icon">&#128269;</span>
-            <h2 class="section-header-title">Scanner Results</h2>
-            <span class="section-header-sub">Your watchlist &middot; All signals</span>
-        </div>
+    <!-- ════════════════════════════════════════════════════════ MAIN AREA ═══ -->
+    <div class="main-area" id="main-area">
 
-        <div class="signal-bar" id="signal-bar"></div>
-        <div id="group-tabs" class="group-tabs"></div>
-
-        <!-- Smart Screener Filters -->
-        <div id="screener-filters" class="screener-filters">
-            <div class="filter-toggle-mobile">Filters &#9660;</div>
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label>RSI</label>
-                    <input type="number" id="filter-rsi-min" placeholder="Min" class="filter-input-small">
-                    <span class="filter-dash">-</span>
-                    <input type="number" id="filter-rsi-max" placeholder="Max" class="filter-input-small">
+        <!-- ════════════════════════════════════════════════════ TOP HEADER ═══ -->
+        <header id="main-header">
+            <!-- Left: hamburger + breadcrumb -->
+            <div class="header-left">
+                <button class="btn-hamburger" id="btn-hamburger" onclick="toggleSidebar()" title="Toggle sidebar">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <div class="header-breadcrumb">
+                    <span class="breadcrumb-parent">SwingAgent</span>
+                    <span class="breadcrumb-sep">›</span>
+                    <span class="breadcrumb-current" id="header-page-title">Dashboard</span>
                 </div>
-                <div class="filter-group">
-                    <label>AI Score</label>
-                    <input type="number" id="filter-score-min" placeholder="Min" class="filter-input-small">
-                    <span class="filter-dash">-</span>
-                    <input type="number" id="filter-score-max" placeholder="Max" class="filter-input-small">
-                </div>
-                <div class="filter-group">
-                    <label>Vol &ge;</label>
-                    <input type="number" id="filter-volume-min" placeholder="1.0x" step="0.1" class="filter-input-small">
-                </div>
-                <div class="filter-group">
-                    <label>Signal</label>
-                    <select id="filter-signal-type" class="filter-select">
-                        <option value="">Any</option>
-                        <option value="STRONG BUY">STRONG BUY</option>
-                        <option value="BUY">BUY</option>
-                        <option value="HOLD">HOLD</option>
-                        <option value="SELL">SELL</option>
-                        <option value="STRONG SELL">STRONG SELL</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>Setup</label>
-                    <select id="filter-setup-type" class="filter-select">
-                        <option value="">Any</option>
-                        <option value="Pullback">Pullback</option>
-                        <option value="Breakout">Breakout</option>
-                        <option value="Range Break">Range Break</option>
-                        <option value="Neutral">Neutral</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>EMA Trend</label>
-                    <select id="filter-ema-trend" class="filter-select">
-                        <option value="">Any</option>
-                        <option value="bullish">Bullish</option>
-                        <option value="bearish">Bearish</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>2M %</label>
-                    <input type="number" id="filter-change-min" placeholder="Min" class="filter-input-small">
-                    <span class="filter-dash">-</span>
-                    <input type="number" id="filter-change-max" placeholder="Max" class="filter-input-small">
-                </div>
-                <button id="btn-apply-filters" class="btn btn-small btn-primary">Apply</button>
-                <button id="btn-clear-filters" class="btn btn-small">Clear</button>
             </div>
-            <div class="filter-presets-row">
-                <span class="filter-presets-label">Presets:</span>
-                <div id="filter-preset-buttons" class="filter-preset-buttons"></div>
-                <button id="btn-save-preset" class="btn btn-small">Save as Preset</button>
+
+            <!-- Centre: Market Pills + scan info -->
+            <div class="header-center">
+                <div class="nav-market-pills" id="nav-market-pills">
+                    <span class="nav-pill" id="nav-spy-pill">SPY —</span>
+                    <span class="nav-pill" id="nav-qqq-pill">QQQ —</span>
+                </div>
+                <span id="scan-time" class="scan-time"></span>
+                <span id="countdown-timer" class="countdown-timer" title="Next refresh"></span>
+            </div>
+
+            <!-- Right: actions + avatar -->
+            <div class="header-right">
+                <button id="btn-pause" class="btn btn-icon-header" title="Pause auto-refresh">
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                </button>
+                <button id="btn-scan" class="btn btn-primary">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    Scan Now
+                </button>
+                <button id="btn-journal" class="btn btn-icon-header" title="Trade Journal">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </button>
+                <button id="btn-settings" class="btn btn-icon-header" title="Settings">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+                <div class="user-avatar">A</div>
+            </div>
+        </header>
+
+        <!-- Price Ticker Bar -->
+        <div id="price-ticker" class="price-ticker"></div>
+
+        <!-- Market Overview Banner -->
+        <div id="market-overview" class="market-overview hidden">
+            <div class="market-overview-inner">
+                <div class="market-sentiment-block" id="market-sentiment-block">
+                    <span class="market-sentiment-label">Market</span>
+                    <span class="market-sentiment-value" id="market-sentiment-text">Loading...</span>
+                </div>
+                <div class="market-indices" id="market-indices"></div>
             </div>
         </div>
 
-        <div class="table-container">
-            <table id="scan-table">
-                <thead>
-                    <tr>
-                        <th>Ticker</th>
-                        <th>Price</th>
-                        <th>Setup</th>
-                        <th>AI Score</th>
-                        <th>Signal</th>
-                        <th>RSI</th>
-                        <th>Vol</th>
-                        <th>Win%</th>
-                        <th>2M %</th>
-                        <th>Entry</th>
-                        <th>Stop</th>
-                        <th>Target</th>
-                        <th>R:R</th>
-                        <th>Shares</th>
-                        <th>1W</th>
-                        <th>2W</th>
-                        <th>1M</th>
-                        <th>3M</th>
-                        <th>TF</th>
-                        <th>Earn</th>
-                    </tr>
-                </thead>
-                <tbody id="scan-body"></tbody>
-            </table>
+        <!-- Loading Overlay -->
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p id="loading-text">Scanning stocks...</p>
         </div>
 
-        <!-- ── §5 Watchlist ─────────────────────────────────────────────── -->
-        <div id="watchlist-panel" class="watchlist-panel hidden">
-            <div class="section-header-bar">
-                <span class="section-header-icon">&#128204;</span>
-                <h2 class="section-header-title">Watchlist</h2>
-                <span class="section-header-sub">Score &middot; Entry &middot; Stop &middot; Target &middot; Mini chart</span>
-                <button class="btn btn-small btn-icon" onclick="openSettings()" title="Edit watchlist" style="margin-left:auto">&#9881;</button>
-            </div>
-            <div id="watchlist-cards" class="watchlist-cards"></div>
-        </div>
+        <!-- ══════════════════════════════════════════════════ CONTENT AREA ═══ -->
+        <div class="content-area">
 
-        <!-- ── §6 Trade Simulator ──────────────────────────────────────── -->
-        <div id="sim-quick-card" class="sim-quick-card hidden">
-            <div class="sim-quick-header">
-                <span class="sim-quick-title">&#127919; Position Calculator</span>
-                <button class="btn btn-sim btn-small" onclick="showSimulator()">Open Trade Log &rarr;</button>
-            </div>
-            <div class="sim-panel-body">
-                <!-- Left: calculator inputs -->
-                <div class="sim-calc-side">
-                    <div class="sim-calc-grid">
-                        <div class="sim-field">
-                            <label class="sim-label">Capital ($)</label>
-                            <input type="number" id="calc-capital" class="sim-input" placeholder="10000" value="10000" min="100" step="100" oninput="calcPosition()">
+            <!-- ════════════════════════════════════════ VIEW: SUMMARY (Dashboard) ═══ -->
+            <main id="view-summary">
+
+                <!-- §1 AI Trade Signal (Hero Card) -->
+                <div id="hero-section" class="hero-section hidden">
+                    <div class="section-header-bar">
+                        <span class="section-header-icon">🎯</span>
+                        <h2 class="section-header-title">AI Trade Signal</h2>
+                        <span class="section-header-sub">Best setup today · Score ≥70 · Updated on each scan</span>
+                    </div>
+                    <div id="hero-card" class="hero-card"></div>
+                </div>
+
+                <!-- §2 Top 3 AI Trades This Week -->
+                <div id="top-setups-section" class="top-setups-section hidden">
+                    <div class="top-setups-header">
+                        <h2 class="top-setups-title">🤖 Top 3 AI Trades This Week</h2>
+                        <span class="top-setups-sub">Score ≥70 only · AI 5-Step Pipeline · 2–4 Week Holds</span>
+                    </div>
+                    <div id="top-setups-grid" class="top-setups-grid"></div>
+                </div>
+
+                <!-- §3 Top 10 AI Swing Trades Today -->
+                <div id="top10-section" class="top10-section hidden">
+                    <div class="section-header-bar">
+                        <span class="section-header-icon">📊</span>
+                        <h2 class="section-header-title">Top 10 AI Swing Trades Today</h2>
+                        <span class="section-header-sub">200+ stocks across all sectors · Score ≥70 only · Daily cache</span>
+                        <div id="top10-status" class="top10-status"></div>
+                    </div>
+                    <div id="top10-list" class="top10-list"></div>
+                </div>
+
+                <!-- §4 Scanner Results -->
+                <div class="section-header-bar section-scanner-bar">
+                    <span class="section-header-icon">🔍</span>
+                    <h2 class="section-header-title">Scanner Results</h2>
+                    <span class="section-header-sub">Your watchlist · All signals</span>
+                </div>
+
+                <div class="signal-bar" id="signal-bar"></div>
+                <div id="group-tabs" class="group-tabs"></div>
+
+                <!-- Smart Screener Filters -->
+                <div id="screener-filters" class="screener-filters">
+                    <div class="filter-toggle-mobile">Filters ▾</div>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>RSI</label>
+                            <input type="number" id="filter-rsi-min" placeholder="Min" class="filter-input-small">
+                            <span class="filter-dash">–</span>
+                            <input type="number" id="filter-rsi-max" placeholder="Max" class="filter-input-small">
                         </div>
-                        <div class="sim-field">
-                            <label class="sim-label">Risk % per Trade</label>
-                            <input type="number" id="calc-risk-pct" class="sim-input" placeholder="2" value="2" min="0.1" max="10" step="0.1" oninput="calcPosition()">
+                        <div class="filter-group">
+                            <label>AI Score</label>
+                            <input type="number" id="filter-score-min" placeholder="Min" class="filter-input-small">
+                            <span class="filter-dash">–</span>
+                            <input type="number" id="filter-score-max" placeholder="Max" class="filter-input-small">
                         </div>
-                        <div class="sim-field">
-                            <label class="sim-label">Entry Price ($)</label>
-                            <input type="number" id="calc-entry" class="sim-input" placeholder="0.00" step="0.01" oninput="calcPosition()">
+                        <div class="filter-group">
+                            <label>Vol ≥</label>
+                            <input type="number" id="filter-volume-min" placeholder="1.0x" step="0.1" class="filter-input-small">
                         </div>
-                        <div class="sim-field">
-                            <label class="sim-label">Stop Loss ($)</label>
-                            <input type="number" id="calc-stop" class="sim-input" placeholder="0.00" step="0.01" oninput="calcPosition()">
+                        <div class="filter-group">
+                            <label>Signal</label>
+                            <select id="filter-signal-type" class="filter-select">
+                                <option value="">Any</option>
+                                <option value="STRONG BUY">STRONG BUY</option>
+                                <option value="BUY">BUY</option>
+                                <option value="HOLD">HOLD</option>
+                                <option value="SELL">SELL</option>
+                                <option value="STRONG SELL">STRONG SELL</option>
+                            </select>
                         </div>
-                        <div class="sim-field">
-                            <label class="sim-label">Target ($)</label>
-                            <input type="number" id="calc-target" class="sim-input" placeholder="0.00" step="0.01" oninput="calcPosition()">
+                        <div class="filter-group">
+                            <label>Setup</label>
+                            <select id="filter-setup-type" class="filter-select">
+                                <option value="">Any</option>
+                                <option value="Pullback">Pullback</option>
+                                <option value="Breakout">Breakout</option>
+                                <option value="Range Break">Range Break</option>
+                                <option value="Neutral">Neutral</option>
+                            </select>
                         </div>
+                        <div class="filter-group">
+                            <label>EMA Trend</label>
+                            <select id="filter-ema-trend" class="filter-select">
+                                <option value="">Any</option>
+                                <option value="bullish">Bullish</option>
+                                <option value="bearish">Bearish</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>2M %</label>
+                            <input type="number" id="filter-change-min" placeholder="Min" class="filter-input-small">
+                            <span class="filter-dash">–</span>
+                            <input type="number" id="filter-change-max" placeholder="Max" class="filter-input-small">
+                        </div>
+                        <button id="btn-apply-filters" class="btn btn-small btn-primary">Apply</button>
+                        <button id="btn-clear-filters" class="btn btn-small">Clear</button>
+                    </div>
+                    <div class="filter-presets-row">
+                        <span class="filter-presets-label">Presets:</span>
+                        <div id="filter-preset-buttons" class="filter-preset-buttons"></div>
+                        <button id="btn-save-preset" class="btn btn-small">Save Preset</button>
                     </div>
                 </div>
-                <!-- Right: calculated results -->
-                <div class="sim-results-side">
-                    <div class="sim-result-grid" id="calc-results">
-                        <div class="sim-result-card"><div class="sr-label">Position Size</div><div class="sr-value positive" id="cr-shares">—</div><div class="sr-sub">shares</div></div>
-                        <div class="sim-result-card"><div class="sr-label">Dollar Risk</div><div class="sr-value negative" id="cr-risk">—</div><div class="sr-sub">max loss</div></div>
-                        <div class="sim-result-card"><div class="sr-label">Potential Gain</div><div class="sr-value positive" id="cr-gain">—</div><div class="sr-sub">at target</div></div>
-                        <div class="sim-result-card"><div class="sr-label">R:R Ratio</div><div class="sr-value" id="cr-rr">—</div><div class="sr-sub">reward/risk</div></div>
-                        <div class="sim-result-card"><div class="sr-label">Return %</div><div class="sr-value positive" id="cr-ret">—</div><div class="sr-sub">on capital</div></div>
-                        <div class="sim-result-card"><div class="sr-label">Break Even</div><div class="sr-value" id="cr-be">—</div><div class="sr-sub">$/share</div></div>
-                    </div>
-                </div>
-            </div>
-            <!-- Bottom: account stats strip -->
-            <div class="sim-stats-strip">
-                <div class="sim-strip-stat"><span class="sss-label">Open</span><span class="sss-value" id="sq-open">—</span></div>
-                <div class="sim-strip-stat"><span class="sss-label">Unrealised P&amp;L</span><span class="sss-value" id="sq-unrealised">—</span></div>
-                <div class="sim-strip-stat"><span class="sss-label">Total P&amp;L</span><span class="sss-value" id="sq-total">—</span></div>
-                <div class="sim-strip-stat"><span class="sss-label">Win Rate</span><span class="sss-value" id="sq-winrate">—</span></div>
-                <div class="sim-strip-stat"><span class="sss-label">Closed</span><span class="sss-value" id="sq-closed">—</span></div>
-            </div>
-        </div>
 
-    </main>
-
-    <!-- ════════════════════════════════════════════════ VIEW: DETAIL ═══ -->
-    <main id="view-detail" class="hidden">
-        <div class="detail-header">
-            <button id="btn-back" class="btn btn-back">&larr; Back</button>
-            <div class="detail-title">
-                <h2 id="detail-ticker"></h2>
-                <span id="detail-price" class="detail-price"></span>
-                <span id="detail-change" class="detail-change"></span>
-            </div>
-            <button id="btn-backtest-detail" class="btn">Backtest</button>
-            <div id="detail-signal-badge" class="signal-badge"></div>
-        </div>
-
-        <!-- AI Score Card -->
-        <div id="ai-score-card" class="ai-score-card hidden">
-            <div class="ai-score-main">
-                <div class="ai-score-value" id="ai-score-value">-</div>
-                <div class="ai-score-label">AI SwingScore</div>
-            </div>
-            <div class="ai-score-components" id="ai-score-components"></div>
-            <div class="ai-setup-badge" id="ai-setup-badge"></div>
-        </div>
-
-        <div class="charts-section">
-            <div class="chart-label">Price + EMA 20/50 + Volume</div>
-            <div id="main-chart" class="chart-box"></div>
-            <div class="chart-label">RSI (14)</div>
-            <div id="rsi-chart" class="chart-box chart-small"></div>
-            <div class="chart-label">MACD (12/26/9)</div>
-            <div id="macd-chart" class="chart-box chart-small"></div>
-        </div>
-
-        <!-- Multi-Timeframe Panel -->
-        <div id="mtf-panel" class="mtf-panel hidden">
-            <div class="chart-label" style="padding:0 0 4px">Multi-Timeframe Analysis</div>
-            <div class="mtf-grid">
-                <div class="mtf-card" id="mtf-1h">
-                    <div class="mtf-timeframe">1H</div>
-                    <div class="mtf-signal" id="mtf-signal-1h">-</div>
-                    <div class="mtf-score" id="mtf-score-1h">-</div>
-                    <div class="mtf-trend" id="mtf-trend-1h">-</div>
-                </div>
-                <div class="mtf-card" id="mtf-4h">
-                    <div class="mtf-timeframe">4H</div>
-                    <div class="mtf-signal" id="mtf-signal-4h">-</div>
-                    <div class="mtf-score" id="mtf-score-4h">-</div>
-                    <div class="mtf-trend" id="mtf-trend-4h">-</div>
-                </div>
-                <div class="mtf-card" id="mtf-1d">
-                    <div class="mtf-timeframe">Daily</div>
-                    <div class="mtf-signal" id="mtf-signal-1d">-</div>
-                    <div class="mtf-score" id="mtf-score-1d">-</div>
-                    <div class="mtf-trend" id="mtf-trend-1d">-</div>
-                </div>
-                <div class="mtf-card mtf-alignment-card" id="mtf-alignment-card">
-                    <div class="mtf-timeframe">Alignment</div>
-                    <div class="mtf-alignment-icon" id="mtf-alignment-icon">-</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="detail-cards">
-            <div class="card">
-                <h3>Trade Plan</h3>
-                <div class="trade-plan" id="trade-plan"></div>
-            </div>
-            <div class="card">
-                <h3>Signal Reasons</h3>
-                <ul id="signal-reasons" class="reasons-list"></ul>
-            </div>
-            <div class="card card-full-width">
-                <h3>LookForward Projections</h3>
-                <div class="lookforward-table-wrap" id="lookforward-panel"></div>
-            </div>
-            <div class="card card-full-width">
-                <h3>Notes</h3>
-                <textarea id="stock-note" class="note-input" placeholder="Add your notes for this stock..."></textarea>
-                <button id="btn-save-note" class="btn btn-small" style="margin-top:8px;">Save Note</button>
-            </div>
-            <div class="card card-full-width">
-                <h3>Price Alerts</h3>
-                <div id="alert-rules"></div>
-                <div class="alert-add-row">
-                    <select id="alert-type">
-                        <option value="price_above">Price goes above</option>
-                        <option value="price_below">Price drops below</option>
-                        <option value="signal_buy">Signal changes to BUY</option>
-                        <option value="signal_sell">Signal changes to SELL</option>
-                    </select>
-                    <input type="number" id="alert-value" placeholder="Price..." step="0.01">
-                    <button id="btn-add-alert" class="btn btn-small">+ Add Alert</button>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- ══════════════════════════════════════════════ VIEW: BACKTEST ═══ -->
-    <main id="view-backtest" class="hidden">
-        <div class="detail-header">
-            <button id="btn-back-bt" class="btn btn-back">&larr; Back</button>
-            <h2>Backtest Mode</h2>
-        </div>
-        <div class="backtest-controls">
-            <div class="setting-group" style="margin-bottom:0">
-                <label for="bt-ticker">Ticker</label>
-                <input type="text" id="bt-ticker" placeholder="AAPL" maxlength="6" style="width:120px">
-            </div>
-            <div class="setting-group" style="margin-bottom:0">
-                <label for="bt-days">Lookback</label>
-                <select id="bt-days">
-                    <option value="30">1 Month</option>
-                    <option value="90">3 Months</option>
-                    <option value="180" selected>6 Months</option>
-                    <option value="365">1 Year</option>
-                </select>
-            </div>
-            <button id="btn-run-backtest" class="btn btn-primary" style="align-self:flex-end">Run Backtest</button>
-        </div>
-        <div id="bt-summary" class="bt-summary hidden"></div>
-        <div class="charts-section">
-            <div class="chart-label">Price with BUY / SELL Markers</div>
-            <div id="backtest-chart" class="chart-box" style="height:500px"></div>
-        </div>
-        <div id="bt-trades-section" class="hidden" style="padding:16px 24px 32px">
-            <h3 style="color:var(--text2);font-size:14px;text-transform:uppercase;margin-bottom:12px">Trade History</h3>
-            <table>
-                <thead><tr><th>#</th><th>Entry</th><th>Entry $</th><th>Exit</th><th>Exit $</th><th>Return %</th><th>Result</th></tr></thead>
-                <tbody id="bt-trades-body"></tbody>
-            </table>
-        </div>
-    </main>
-
-    <!-- ═════════════════════════════════════════════ VIEW: PORTFOLIO ═══ -->
-    <main id="view-portfolio" class="hidden">
-        <div class="detail-header">
-            <button id="btn-back-portfolio" class="btn btn-back">&larr; Back</button>
-            <h2>Portfolio Tracker</h2>
-        </div>
-        <div class="pf-banner" id="pf-banner"></div>
-        <div class="pf-alloc-section" id="pf-alloc-section"></div>
-        <div class="pf-list-section">
-            <div class="pf-list-head">
-                <span class="pf-list-title">Open Positions</span>
-                <span class="pf-list-count" id="pf-list-count"></span>
-            </div>
-            <div class="pf-list" id="pf-list"></div>
-        </div>
-        <div class="pf-bottom">
-            <div class="pf-equity-wrap">
-                <div class="pf-section-label">Equity Curve</div>
-                <div id="equity-chart" class="chart-box" style="height:320px"></div>
-            </div>
-            <div class="pf-risk-panel" id="pf-risk-panel"></div>
-        </div>
-    </main>
-
-    <!-- ══════════════════════════════════════════════ VIEW: HEATMAP ═══ -->
-    <main id="view-heatmap" class="hidden">
-        <div class="detail-header">
-            <button id="btn-back-heatmap" class="btn btn-back">&larr; Back</button>
-            <h2>Watchlist Heatmap</h2>
-            <div class="heatmap-legend">
-                <span style="color:var(--green)">&#9632; Positive 2M%</span>
-                <span style="color:var(--red)">&#9632; Negative 2M%</span>
-                <span style="color:var(--text2);font-size:11px">Size = Volume Ratio</span>
-            </div>
-        </div>
-        <div id="heatmap-container" class="heatmap-container"></div>
-    </main>
-
-    <!-- ═════════════════════════════════════════════ VIEW: SIMULATOR ═══ -->
-    <main id="view-simulator" class="hidden">
-        <div class="detail-header">
-            <button id="btn-back-simulator" class="btn btn-back">&larr; Back</button>
-            <h2>&#127919; Trade Simulator</h2>
-            <span class="sim-capital-badge">Capital: £300 &middot; Risk: 3%/trade</span>
-        </div>
-
-        <div class="sim-summary-cards" id="sim-summary-cards"></div>
-
-        <div class="sim-open-section">
-            <h3>Open Simulated Trade</h3>
-            <div class="sim-form-row">
-                <div class="setting-group">
-                    <label>Ticker</label>
-                    <input type="text" id="sim-ticker" placeholder="AAPL" maxlength="6" style="width:90px;text-transform:uppercase">
-                </div>
-                <div class="setting-group">
-                    <label>Entry Price (£)</label>
-                    <input type="number" id="sim-entry" step="0.01" placeholder="0.00" style="width:120px">
-                </div>
-                <div class="setting-group">
-                    <label>Stop Loss (£)</label>
-                    <input type="number" id="sim-stop" step="0.01" placeholder="0.00" style="width:120px">
-                </div>
-                <div class="setting-group">
-                    <label>Target (£)</label>
-                    <input type="number" id="sim-target" step="0.01" placeholder="0.00" style="width:120px">
-                </div>
-                <div class="setting-group">
-                    <label>Shares</label>
-                    <input type="number" id="sim-shares" min="1" placeholder="1" style="width:80px">
-                </div>
-                <div class="setting-group">
-                    <label>Setup Type</label>
-                    <select id="sim-setup">
-                        <option value="Manual">Manual</option>
-                        <option value="Pullback">Pullback</option>
-                        <option value="Breakout">Breakout</option>
-                        <option value="Range Break">Range Break</option>
-                    </select>
-                </div>
-                <div class="setting-group" style="align-self:flex-end">
-                    <button id="btn-sim-open" class="btn btn-primary">Open Trade</button>
-                    <button id="btn-sim-autofill" class="btn btn-small" style="margin-left:6px" title="Fill from last scan result">&#9656; Auto-Fill</button>
-                </div>
-            </div>
-            <div class="sim-risk-hint" id="sim-risk-hint"></div>
-        </div>
-
-        <div class="sim-trades-section">
-            <h3>Open Trades <span id="sim-open-count" class="sim-count-badge">0</span></h3>
-            <div class="table-container">
-                <table id="sim-open-table">
-                    <thead>
-                        <tr>
-                            <th>Ticker</th><th>Setup</th><th>Entry</th><th>Current</th>
-                            <th>Stop</th><th>Target</th><th>Shares</th>
-                            <th>Unrealised P&amp;L</th><th>P&amp;L %</th><th>Date</th><th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="sim-open-body"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="sim-trades-section" id="sim-closed-section">
-            <h3>Closed Trades <span id="sim-closed-count" class="sim-count-badge">0</span></h3>
-            <div class="table-container">
-                <table id="sim-closed-table">
-                    <thead>
-                        <tr>
-                            <th>Ticker</th><th>Setup</th><th>Entry</th><th>Exit</th>
-                            <th>Shares</th><th>P&amp;L (£)</th><th>P&amp;L %</th>
-                            <th>Open</th><th>Close</th><th>Result</th>
-                        </tr>
-                    </thead>
-                    <tbody id="sim-closed-body"></tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-
-    <!-- ═══════════════════════════════════════════ MODAL: SETTINGS ═══ -->
-    <div id="settings-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Settings</h2>
-                <button id="btn-close-modal" class="btn btn-icon">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="setting-group">
-                    <label>Watchlist</label>
-                    <div id="watchlist-tags" class="tag-container"></div>
-                    <div class="tag-input-row">
-                        <input type="text" id="add-ticker-input" placeholder="Add ticker..." maxlength="6">
-                        <button id="btn-add-ticker" class="btn btn-small">+ Add</button>
-                    </div>
-                </div>
-                <div class="setting-group">
-                    <label>Watchlist Groups</label>
-                    <div id="groups-editor"></div>
-                    <div class="tag-input-row" style="margin-top:8px">
-                        <input type="text" id="add-group-input" placeholder="New group name...">
-                        <button id="btn-add-group" class="btn btn-small">+ Add Group</button>
-                    </div>
-                </div>
-                <div class="settings-grid">
-                    <div class="setting-group">
-                        <label for="cfg-ema-fast">EMA Fast (20)</label>
-                        <input type="number" id="cfg-ema-fast" min="2" max="50">
-                    </div>
-                    <div class="setting-group">
-                        <label for="cfg-ema-slow">EMA Slow (50)</label>
-                        <input type="number" id="cfg-ema-slow" min="5" max="200">
-                    </div>
-                    <div class="setting-group">
-                        <label for="cfg-rsi">RSI Period</label>
-                        <input type="number" id="cfg-rsi" min="5" max="30">
-                    </div>
-                    <div class="setting-group">
-                        <label for="cfg-macd-fast">MACD Fast</label>
-                        <input type="number" id="cfg-macd-fast" min="5" max="30">
-                    </div>
-                    <div class="setting-group">
-                        <label for="cfg-macd-slow">MACD Slow</label>
-                        <input type="number" id="cfg-macd-slow" min="10" max="50">
-                    </div>
-                    <div class="setting-group">
-                        <label for="cfg-macd-signal">MACD Signal</label>
-                        <input type="number" id="cfg-macd-signal" min="3" max="20">
-                    </div>
-                    <div class="setting-group">
-                        <label for="cfg-account">Capital (£)</label>
-                        <input type="number" id="cfg-account" min="100" step="50">
-                    </div>
-                    <div class="setting-group">
-                        <label for="cfg-risk">Risk per Trade (%)</label>
-                        <input type="number" id="cfg-risk" min="0.5" max="10" step="0.5">
-                    </div>
-                    <div class="setting-group">
-                        <label for="cfg-volume">Volume Spike (x)</label>
-                        <input type="number" id="cfg-volume" min="1" max="5" step="0.1">
-                    </div>
-                    <div class="setting-group">
-                        <label for="cfg-min-score">Min Score</label>
-                        <input type="number" id="cfg-min-score" min="0" max="100">
-                    </div>
-                    <div class="setting-group">
-                        <label for="cfg-refresh">Auto-Refresh (min)</label>
-                        <input type="number" id="cfg-refresh" min="1" max="60" step="1">
-                    </div>
-                    <div class="setting-group">
-                        <label for="cfg-polygon-key">Polygon API Key</label>
-                        <input type="text" id="cfg-polygon-key" placeholder="Optional — primary data source">
-                    </div>
-                    <div class="setting-group">
-                        <label for="cfg-alpha-key">Alpha Vantage Key</label>
-                        <input type="text" id="cfg-alpha-key" placeholder="Optional — fallback data source">
-                    </div>
-                </div>
-                <div class="setting-group">
-                    <label>Alert Settings</label>
-                    <div class="alert-toggles">
-                        <label class="toggle-label"><input type="checkbox" id="cfg-sound"> Sound alerts</label>
-                        <label class="toggle-label"><input type="checkbox" id="cfg-browser-notif"> Browser notifications</label>
-                        <label class="toggle-label"><input type="checkbox" id="cfg-toast"> Toast popups</label>
-                    </div>
-                </div>
-                <div class="setting-group">
-                    <label>Preset Auto-Alerts</label>
-                    <div id="preset-alert-toggles" class="alert-toggles"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="btn-save-settings" class="btn btn-primary">Save Settings</button>
-                <button id="btn-cancel-settings" class="btn">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════ MODAL: JOURNAL ═══ -->
-    <div id="journal-modal" class="modal hidden">
-        <div class="modal-content modal-wide">
-            <div class="modal-header">
-                <h2>Trade Journal</h2>
-                <button id="btn-close-journal" class="btn btn-icon">&times;</button>
-            </div>
-            <div class="modal-body">
-                <button id="btn-add-journal" class="btn btn-primary btn-small" style="margin-bottom:16px">+ New Entry</button>
-                <button id="btn-export-journal" class="btn btn-small" style="margin-bottom:16px;margin-left:8px">Export CSV</button>
-                <div id="journal-form" class="hidden" style="margin-bottom:16px">
-                    <div class="settings-grid">
-                        <div class="setting-group"><label>Ticker</label><input type="text" id="j-ticker" maxlength="6"></div>
-                        <div class="setting-group"><label>Type</label><select id="j-type"><option>BUY</option><option>SELL</option></select></div>
-                        <div class="setting-group"><label>Entry Price</label><input type="number" id="j-entry" step="0.01"></div>
-                        <div class="setting-group"><label>Entry Date</label><input type="date" id="j-entry-date"></div>
-                        <div class="setting-group"><label>Exit Price</label><input type="number" id="j-exit" step="0.01"></div>
-                        <div class="setting-group"><label>Exit Date</label><input type="date" id="j-exit-date"></div>
-                        <div class="setting-group"><label>Shares</label><input type="number" id="j-shares" min="1"></div>
-                    </div>
-                    <div class="setting-group"><label>Notes</label><input type="text" id="j-notes" placeholder="Trade notes..."></div>
-                    <button id="btn-submit-journal" class="btn btn-primary btn-small">Save Entry</button>
-                    <button id="btn-cancel-journal" class="btn btn-small">Cancel</button>
-                </div>
-                <table class="journal-table">
-                    <thead><tr><th>Date</th><th>Ticker</th><th>Type</th><th>Entry</th><th>Exit</th><th>Shares</th><th>P&amp;L</th><th>1W</th><th>2W</th><th>3W</th><th>4W</th><th>Status</th><th>Notes</th><th></th></tr></thead>
-                    <tbody id="journal-body"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- ════════════════════════════════════ MODAL: CLOSE SIM TRADE ═══ -->
-    <div id="sim-close-modal" class="modal hidden">
-        <div class="modal-content" style="max-width:420px">
-            <div class="modal-header">
-                <h2>Close Trade</h2>
-                <button id="btn-close-sim-modal" class="btn btn-icon">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="setting-group">
-                    <label>Exit Price (£)</label>
-                    <input type="number" id="sim-close-price" step="0.01" placeholder="0.00" style="width:160px">
-                </div>
-                <p style="color:var(--text2);font-size:12px;margin-top:8px">
-                    Enter the price at which you are closing this trade.
-                </p>
-            </div>
-            <div class="modal-footer">
-                <button id="btn-sim-close-confirm" class="btn btn-primary">Close Trade</button>
-                <button id="btn-sim-close-cancel" class="btn">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ══════════════════════════════════════ VIEW: AI WEEKLY INTELLIGENCE ═══ -->
-    <main id="view-ai-weekly" class="hidden">
-
-        <!-- Header -->
-        <div class="detail-header">
-            <button id="btn-back-ai-weekly" class="btn btn-back">&larr; Back</button>
-            <div>
-                <h2 style="margin:0">&#129302; AI Weekly Market Intelligence</h2>
-                <span style="font-size:11px;color:var(--text2)">5-Step Pipeline: Technical · News · Social · Risk · Final Score</span>
-            </div>
-            <button id="btn-refresh-ai-weekly" class="btn btn-primary btn-small">&#8635; Refresh AI Scan</button>
-        </div>
-
-        <!-- Loading state -->
-        <div id="ai-weekly-loading" class="ai-section-loading hidden">
-            <div class="ai-spinner"></div>
-            <p id="ai-weekly-loading-text">Running AI analysis pipeline...</p>
-        </div>
-
-        <!-- Professor Mode Panel -->
-        <div id="professor-panel" class="professor-panel hidden">
-            <div class="professor-header">
-                <span class="professor-icon">&#127891;</span>
-                <div>
-                    <div class="professor-title">Professor Mode — AI Trading Advice</div>
-                    <div class="professor-subtitle" id="professor-timestamp"></div>
-                </div>
-                <div class="professor-condition-badge" id="professor-condition-badge"></div>
-            </div>
-            <div class="professor-body">
-                <div class="professor-advice" id="professor-advice"></div>
-                <div class="professor-metrics">
-                    <div class="prof-metric">
-                        <div class="prof-metric-label">Market Condition</div>
-                        <div class="prof-metric-value" id="prof-market-condition"></div>
-                    </div>
-                    <div class="prof-metric">
-                        <div class="prof-metric-label">VIX Level</div>
-                        <div class="prof-metric-value" id="prof-vix"></div>
-                    </div>
-                    <div class="prof-metric">
-                        <div class="prof-metric-label">Risk Level</div>
-                        <div class="prof-metric-value" id="prof-risk-level"></div>
-                    </div>
-                    <div class="prof-metric">
-                        <div class="prof-metric-label">Best Sector</div>
-                        <div class="prof-metric-value" id="prof-best-sector"></div>
-                    </div>
-                </div>
-                <!-- Sector Strength Bars -->
-                <div class="sector-strength-section">
-                    <div class="sector-strength-title">Sector Strength (10-Day %)</div>
-                    <div id="sector-strength-bars" class="sector-bars"></div>
-                </div>
-                <!-- Strategy -->
-                <div class="professor-strategy">
-                    <span class="strategy-label">&#127919; Recommended Strategy:</span>
-                    <span id="prof-strategy"></span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Top 3 Weekly AI Trades -->
-        <div class="ai-weekly-section">
-            <div class="ai-section-header">
-                <h3 class="ai-section-title">&#127881; Top 3 AI Swing Trades This Week</h3>
-                <span class="ai-section-sub" id="ai-weekly-last-scan"></span>
-            </div>
-            <div id="ai-weekly-content">
                 <div class="table-container">
-                    <table id="ai-weekly-table">
+                    <table id="scan-table">
                         <thead>
                             <tr>
-                                <th>Rank</th>
-                                <th>Stock</th>
+                                <th>Ticker</th>
+                                <th>Price</th>
                                 <th>Setup</th>
                                 <th>AI Score</th>
+                                <th>Signal</th>
+                                <th>RSI</th>
+                                <th>Vol</th>
+                                <th>Win%</th>
+                                <th>2M %</th>
                                 <th>Entry</th>
-                                <th>Stop Loss</th>
+                                <th>Stop</th>
                                 <th>Target</th>
-                                <th>Target %</th>
-                                <th>Confidence</th>
-                                <th>Tech</th>
-                                <th>News</th>
-                                <th>Social</th>
-                                <th>Risk</th>
+                                <th>R:R</th>
+                                <th>Shares</th>
+                                <th>1W</th>
+                                <th>2W</th>
+                                <th>1M</th>
+                                <th>3M</th>
+                                <th>TF</th>
+                                <th>Earn</th>
                             </tr>
                         </thead>
-                        <tbody id="ai-weekly-body"></tbody>
+                        <tbody id="scan-body"></tbody>
                     </table>
                 </div>
-            </div>
-        </div>
 
-        <!-- Divider -->
-        <div class="ai-divider"></div>
+                <!-- §5 Watchlist -->
+                <div id="watchlist-panel" class="watchlist-panel hidden">
+                    <div class="section-header-bar">
+                        <span class="section-header-icon">📌</span>
+                        <h2 class="section-header-title">Watchlist</h2>
+                        <span class="section-header-sub">Score · Entry · Stop · Target · Mini chart</span>
+                        <button class="btn btn-small btn-icon-header" onclick="openSettings()" title="Edit watchlist" style="margin-left:auto">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        </button>
+                    </div>
+                    <div id="watchlist-cards" class="watchlist-cards"></div>
+                </div>
 
-        <!-- AI Market Scanner — Top 10 -->
-        <div class="ai-weekly-section">
-            <div class="ai-section-header">
-                <h3 class="ai-section-title">&#128202; Top 10 AI Swing Trades Today</h3>
-                <span class="ai-section-sub">Large-scale scan · ~{{UNIVERSE_COUNT}} stocks · Updated daily</span>
-            </div>
+                <!-- §6 Position Calculator -->
+                <div id="sim-quick-card" class="sim-quick-card hidden">
+                    <div class="sim-quick-header">
+                        <span class="sim-quick-title">🎯 Position Calculator</span>
+                        <button class="btn btn-sim btn-small" onclick="showSimulator()">Open Trade Log →</button>
+                    </div>
+                    <div class="sim-panel-body">
+                        <div class="sim-calc-side">
+                            <div class="sim-calc-grid">
+                                <div class="sim-field">
+                                    <label class="sim-label">Capital ($)</label>
+                                    <input type="number" id="calc-capital" class="sim-input" placeholder="10000" value="10000" min="100" step="100" oninput="calcPosition()">
+                                </div>
+                                <div class="sim-field">
+                                    <label class="sim-label">Risk % per Trade</label>
+                                    <input type="number" id="calc-risk-pct" class="sim-input" placeholder="2" value="2" min="0.1" max="10" step="0.1" oninput="calcPosition()">
+                                </div>
+                                <div class="sim-field">
+                                    <label class="sim-label">Entry Price ($)</label>
+                                    <input type="number" id="calc-entry" class="sim-input" placeholder="0.00" step="0.01" oninput="calcPosition()">
+                                </div>
+                                <div class="sim-field">
+                                    <label class="sim-label">Stop Loss ($)</label>
+                                    <input type="number" id="calc-stop" class="sim-input" placeholder="0.00" step="0.01" oninput="calcPosition()">
+                                </div>
+                                <div class="sim-field">
+                                    <label class="sim-label">Target ($)</label>
+                                    <input type="number" id="calc-target" class="sim-input" placeholder="0.00" step="0.01" oninput="calcPosition()">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sim-results-side">
+                            <div class="sim-result-grid" id="calc-results">
+                                <div class="sim-result-card"><div class="sr-label">Position Size</div><div class="sr-value positive" id="cr-shares">—</div><div class="sr-sub">shares</div></div>
+                                <div class="sim-result-card"><div class="sr-label">Dollar Risk</div><div class="sr-value negative" id="cr-risk">—</div><div class="sr-sub">max loss</div></div>
+                                <div class="sim-result-card"><div class="sr-label">Potential Gain</div><div class="sr-value positive" id="cr-gain">—</div><div class="sr-sub">at target</div></div>
+                                <div class="sim-result-card"><div class="sr-label">R:R Ratio</div><div class="sr-value" id="cr-rr">—</div><div class="sr-sub">reward/risk</div></div>
+                                <div class="sim-result-card"><div class="sr-label">Return %</div><div class="sr-value positive" id="cr-ret">—</div><div class="sr-sub">on capital</div></div>
+                                <div class="sim-result-card"><div class="sr-label">Break Even</div><div class="sr-value" id="cr-be">—</div><div class="sr-sub">$/share</div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sim-stats-strip">
+                        <div class="sim-strip-stat"><span class="sss-label">Open</span><span class="sss-value" id="sq-open">—</span></div>
+                        <div class="sim-strip-stat"><span class="sss-label">Unrealised P&amp;L</span><span class="sss-value" id="sq-unrealised">—</span></div>
+                        <div class="sim-strip-stat"><span class="sss-label">Total P&amp;L</span><span class="sss-value" id="sq-total">—</span></div>
+                        <div class="sim-strip-stat"><span class="sss-label">Win Rate</span><span class="sss-value" id="sq-winrate">—</span></div>
+                        <div class="sim-strip-stat"><span class="sss-label">Closed</span><span class="sss-value" id="sq-closed">—</span></div>
+                    </div>
+                </div>
 
-            <!-- Scanner status bar -->
-            <div id="scanner-status-bar" class="scanner-status-bar hidden"></div>
+            </main><!-- /view-summary -->
 
-            <div id="scanner-content">
-                <div class="table-container">
-                    <table id="scanner-table">
-                        <thead>
-                            <tr>
-                                <th>Rank</th>
-                                <th>Stock</th>
-                                <th>Setup</th>
-                                <th>Swing Score</th>
-                                <th>Entry</th>
-                                <th>Target</th>
-                                <th>Expected Return</th>
-                                <th>Confidence</th>
-                            </tr>
-                        </thead>
-                        <tbody id="scanner-body"></tbody>
+            <!-- ════════════════════════════════════════════════ VIEW: DETAIL ═══ -->
+            <main id="view-detail" class="hidden">
+                <div class="detail-header">
+                    <button id="btn-back" class="btn btn-back">← Back</button>
+                    <div class="detail-title">
+                        <h2 id="detail-ticker"></h2>
+                        <span id="detail-price" class="detail-price"></span>
+                        <span id="detail-change" class="detail-change"></span>
+                    </div>
+                    <button id="btn-backtest-detail" class="btn">Backtest</button>
+                    <div id="detail-signal-badge" class="signal-badge"></div>
+                </div>
+
+                <div id="ai-score-card" class="ai-score-card hidden">
+                    <div class="ai-score-main">
+                        <div class="ai-score-value" id="ai-score-value">-</div>
+                        <div class="ai-score-label">AI SwingScore</div>
+                    </div>
+                    <div class="ai-score-components" id="ai-score-components"></div>
+                    <div class="ai-setup-badge" id="ai-setup-badge"></div>
+                </div>
+
+                <div class="charts-section">
+                    <div class="chart-label">Price + EMA 20/50 + Volume</div>
+                    <div id="main-chart" class="chart-box"></div>
+                    <div class="chart-label">RSI (14)</div>
+                    <div id="rsi-chart" class="chart-box chart-small"></div>
+                    <div class="chart-label">MACD (12/26/9)</div>
+                    <div id="macd-chart" class="chart-box chart-small"></div>
+                </div>
+
+                <div id="mtf-panel" class="mtf-panel hidden">
+                    <div class="chart-label" style="padding:0 0 4px">Multi-Timeframe Analysis</div>
+                    <div class="mtf-grid">
+                        <div class="mtf-card" id="mtf-1h">
+                            <div class="mtf-timeframe">1H</div>
+                            <div class="mtf-signal" id="mtf-signal-1h">-</div>
+                            <div class="mtf-score" id="mtf-score-1h">-</div>
+                            <div class="mtf-trend" id="mtf-trend-1h">-</div>
+                        </div>
+                        <div class="mtf-card" id="mtf-4h">
+                            <div class="mtf-timeframe">4H</div>
+                            <div class="mtf-signal" id="mtf-signal-4h">-</div>
+                            <div class="mtf-score" id="mtf-score-4h">-</div>
+                            <div class="mtf-trend" id="mtf-trend-4h">-</div>
+                        </div>
+                        <div class="mtf-card" id="mtf-1d">
+                            <div class="mtf-timeframe">Daily</div>
+                            <div class="mtf-signal" id="mtf-signal-1d">-</div>
+                            <div class="mtf-score" id="mtf-score-1d">-</div>
+                            <div class="mtf-trend" id="mtf-trend-1d">-</div>
+                        </div>
+                        <div class="mtf-card mtf-alignment-card" id="mtf-alignment-card">
+                            <div class="mtf-timeframe">Alignment</div>
+                            <div class="mtf-alignment-icon" id="mtf-alignment-icon">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-cards">
+                    <div class="card">
+                        <h3>Trade Plan</h3>
+                        <div class="trade-plan" id="trade-plan"></div>
+                    </div>
+                    <div class="card">
+                        <h3>Signal Reasons</h3>
+                        <ul id="signal-reasons" class="reasons-list"></ul>
+                    </div>
+                    <div class="card card-full-width">
+                        <h3>LookForward Projections</h3>
+                        <div class="lookforward-table-wrap" id="lookforward-panel"></div>
+                    </div>
+                    <div class="card card-full-width">
+                        <h3>Notes</h3>
+                        <textarea id="stock-note" class="note-input" placeholder="Add your notes for this stock..."></textarea>
+                        <button id="btn-save-note" class="btn btn-small" style="margin-top:8px">Save Note</button>
+                    </div>
+                    <div class="card card-full-width">
+                        <h3>Price Alerts</h3>
+                        <div id="alert-rules"></div>
+                        <div class="alert-add-row">
+                            <select id="alert-type">
+                                <option value="price_above">Price goes above</option>
+                                <option value="price_below">Price drops below</option>
+                                <option value="signal_buy">Signal changes to BUY</option>
+                                <option value="signal_sell">Signal changes to SELL</option>
+                            </select>
+                            <input type="number" id="alert-value" placeholder="Price..." step="0.01">
+                            <button id="btn-add-alert" class="btn btn-small">+ Add Alert</button>
+                        </div>
+                    </div>
+                </div>
+            </main><!-- /view-detail -->
+
+            <!-- ══════════════════════════════════════════════ VIEW: BACKTEST ═══ -->
+            <main id="view-backtest" class="hidden">
+                <div class="detail-header">
+                    <button id="btn-back-bt" class="btn btn-back">← Back</button>
+                    <h2>Backtest Mode</h2>
+                </div>
+                <div class="backtest-controls">
+                    <div class="setting-group" style="margin-bottom:0">
+                        <label for="bt-ticker">Ticker</label>
+                        <input type="text" id="bt-ticker" placeholder="AAPL" maxlength="6" style="width:120px">
+                    </div>
+                    <div class="setting-group" style="margin-bottom:0">
+                        <label for="bt-days">Lookback</label>
+                        <select id="bt-days">
+                            <option value="30">1 Month</option>
+                            <option value="90">3 Months</option>
+                            <option value="180" selected>6 Months</option>
+                            <option value="365">1 Year</option>
+                        </select>
+                    </div>
+                    <button id="btn-run-backtest" class="btn btn-primary" style="align-self:flex-end">Run Backtest</button>
+                </div>
+                <div id="bt-summary" class="bt-summary hidden"></div>
+                <div class="charts-section">
+                    <div class="chart-label">Price with BUY / SELL Markers</div>
+                    <div id="backtest-chart" class="chart-box" style="height:500px"></div>
+                </div>
+                <div id="bt-trades-section" class="hidden" style="padding:16px 24px 32px">
+                    <h3 class="section-mini-title">Trade History</h3>
+                    <table>
+                        <thead><tr><th>#</th><th>Entry</th><th>Entry $</th><th>Exit</th><th>Exit $</th><th>Return %</th><th>Result</th></tr></thead>
+                        <tbody id="bt-trades-body"></tbody>
                     </table>
                 </div>
-            </div>
+            </main><!-- /view-backtest -->
 
-            <div class="scanner-footer">
-                <button id="btn-refresh-scanner" class="btn btn-small">&#8635; Refresh Scanner</button>
-                <span class="scanner-last-scan" id="scanner-last-scan"></span>
+            <!-- ═════════════════════════════════════════════ VIEW: PORTFOLIO ═══ -->
+            <main id="view-portfolio" class="hidden">
+                <div class="detail-header">
+                    <button id="btn-back-portfolio" class="btn btn-back">← Back</button>
+                    <h2>Portfolio Tracker</h2>
+                </div>
+                <div class="pf-banner" id="pf-banner"></div>
+                <div class="pf-alloc-section" id="pf-alloc-section"></div>
+                <div class="pf-list-section">
+                    <div class="pf-list-head">
+                        <span class="pf-list-title">Open Positions</span>
+                        <span class="pf-list-count" id="pf-list-count"></span>
+                    </div>
+                    <div class="pf-list" id="pf-list"></div>
+                </div>
+                <div class="pf-bottom">
+                    <div class="pf-equity-wrap">
+                        <div class="pf-section-label">Equity Curve</div>
+                        <div id="equity-chart" class="chart-box" style="height:320px"></div>
+                    </div>
+                    <div class="pf-risk-panel" id="pf-risk-panel"></div>
+                </div>
+            </main><!-- /view-portfolio -->
+
+            <!-- ══════════════════════════════════════════════ VIEW: HEATMAP ═══ -->
+            <main id="view-heatmap" class="hidden">
+                <div class="detail-header">
+                    <button id="btn-back-heatmap" class="btn btn-back">← Back</button>
+                    <h2>Watchlist Heatmap</h2>
+                    <div class="heatmap-legend">
+                        <span style="color:var(--green)">■ Positive 2M%</span>
+                        <span style="color:var(--red)">■ Negative 2M%</span>
+                        <span style="color:var(--text2);font-size:11px">Size = Volume Ratio</span>
+                    </div>
+                </div>
+                <div id="heatmap-container" class="heatmap-container"></div>
+            </main><!-- /view-heatmap -->
+
+            <!-- ═════════════════════════════════════════════ VIEW: SIMULATOR ═══ -->
+            <main id="view-simulator" class="hidden">
+                <div class="detail-header">
+                    <button id="btn-back-simulator" class="btn btn-back">← Back</button>
+                    <h2>🎯 Trade Simulator</h2>
+                    <span class="sim-capital-badge">Capital: £300 · Risk: 3%/trade</span>
+                </div>
+
+                <div class="sim-summary-cards" id="sim-summary-cards"></div>
+
+                <div class="sim-open-section">
+                    <h3>Open Simulated Trade</h3>
+                    <div class="sim-form-row">
+                        <div class="setting-group">
+                            <label>Ticker</label>
+                            <input type="text" id="sim-ticker" placeholder="AAPL" maxlength="6" style="width:90px;text-transform:uppercase">
+                        </div>
+                        <div class="setting-group">
+                            <label>Entry Price (£)</label>
+                            <input type="number" id="sim-entry" step="0.01" placeholder="0.00" style="width:120px">
+                        </div>
+                        <div class="setting-group">
+                            <label>Stop Loss (£)</label>
+                            <input type="number" id="sim-stop" step="0.01" placeholder="0.00" style="width:120px">
+                        </div>
+                        <div class="setting-group">
+                            <label>Target (£)</label>
+                            <input type="number" id="sim-target" step="0.01" placeholder="0.00" style="width:120px">
+                        </div>
+                        <div class="setting-group">
+                            <label>Shares</label>
+                            <input type="number" id="sim-shares" min="1" placeholder="1" style="width:80px">
+                        </div>
+                        <div class="setting-group">
+                            <label>Setup Type</label>
+                            <select id="sim-setup">
+                                <option value="Manual">Manual</option>
+                                <option value="Pullback">Pullback</option>
+                                <option value="Breakout">Breakout</option>
+                                <option value="Range Break">Range Break</option>
+                            </select>
+                        </div>
+                        <div class="setting-group" style="align-self:flex-end">
+                            <button id="btn-sim-open" class="btn btn-primary">Open Trade</button>
+                            <button id="btn-sim-autofill" class="btn btn-small" style="margin-left:6px" title="Fill from last scan result">▶ Auto-Fill</button>
+                        </div>
+                    </div>
+                    <div class="sim-risk-hint" id="sim-risk-hint"></div>
+                </div>
+
+                <div class="sim-trades-section">
+                    <h3>Open Trades <span id="sim-open-count" class="sim-count-badge">0</span></h3>
+                    <div class="table-container">
+                        <table id="sim-open-table">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th><th>Setup</th><th>Entry</th><th>Current</th>
+                                    <th>Stop</th><th>Target</th><th>Shares</th>
+                                    <th>Unrealised P&amp;L</th><th>P&amp;L %</th><th>Date</th><th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sim-open-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="sim-trades-section" id="sim-closed-section">
+                    <h3>Closed Trades <span id="sim-closed-count" class="sim-count-badge">0</span></h3>
+                    <div class="table-container">
+                        <table id="sim-closed-table">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th><th>Setup</th><th>Entry</th><th>Exit</th>
+                                    <th>Shares</th><th>P&amp;L (£)</th><th>P&amp;L %</th>
+                                    <th>Open</th><th>Close</th><th>Result</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sim-closed-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </main><!-- /view-simulator -->
+
+            <!-- ═══════════════════════════════ VIEW: AI WEEKLY INTELLIGENCE ═══ -->
+            <main id="view-ai-weekly" class="hidden">
+                <div class="detail-header">
+                    <button id="btn-back-ai-weekly" class="btn btn-back">← Back</button>
+                    <div>
+                        <h2 style="margin:0">🤖 AI Weekly Market Intelligence</h2>
+                        <span style="font-size:11px;color:var(--text2)">5-Step Pipeline: Technical · News · Social · Risk · Final Score</span>
+                    </div>
+                    <button id="btn-refresh-ai-weekly" class="btn btn-primary btn-small">↻ Refresh AI Scan</button>
+                </div>
+
+                <div id="ai-weekly-loading" class="ai-section-loading hidden">
+                    <div class="ai-spinner"></div>
+                    <p id="ai-weekly-loading-text">Running AI analysis pipeline...</p>
+                </div>
+
+                <!-- Professor Mode Panel -->
+                <div id="professor-panel" class="professor-panel hidden">
+                    <div class="professor-header">
+                        <span class="professor-icon">🎓</span>
+                        <div>
+                            <div class="professor-title">Professor Mode — AI Trading Advice</div>
+                            <div class="professor-subtitle" id="professor-timestamp"></div>
+                        </div>
+                        <div class="professor-condition-badge" id="professor-condition-badge"></div>
+                    </div>
+                    <div class="professor-body">
+                        <div class="professor-advice" id="professor-advice"></div>
+                        <div class="professor-metrics">
+                            <div class="prof-metric">
+                                <div class="prof-metric-label">Market Condition</div>
+                                <div class="prof-metric-value" id="prof-market-condition"></div>
+                            </div>
+                            <div class="prof-metric">
+                                <div class="prof-metric-label">VIX Level</div>
+                                <div class="prof-metric-value" id="prof-vix"></div>
+                            </div>
+                            <div class="prof-metric">
+                                <div class="prof-metric-label">Risk Level</div>
+                                <div class="prof-metric-value" id="prof-risk-level"></div>
+                            </div>
+                            <div class="prof-metric">
+                                <div class="prof-metric-label">Best Sector</div>
+                                <div class="prof-metric-value" id="prof-best-sector"></div>
+                            </div>
+                        </div>
+                        <div class="sector-strength-section">
+                            <div class="sector-strength-title">Sector Strength (10-Day %)</div>
+                            <div id="sector-strength-bars" class="sector-bars"></div>
+                        </div>
+                        <div class="professor-strategy">
+                            <span class="strategy-label">🎯 Recommended Strategy:</span>
+                            <span id="prof-strategy"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top 3 Weekly AI Trades -->
+                <div class="ai-weekly-section">
+                    <div class="ai-section-header">
+                        <h3 class="ai-section-title">🏆 Top 3 AI Swing Trades This Week</h3>
+                        <span class="ai-section-sub" id="ai-weekly-last-scan"></span>
+                    </div>
+                    <div id="ai-weekly-content">
+                        <div class="table-container">
+                            <table id="ai-weekly-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th><th>Stock</th><th>Setup</th><th>AI Score</th>
+                                        <th>Entry</th><th>Stop Loss</th><th>Target</th><th>Target %</th>
+                                        <th>Confidence</th><th>Tech</th><th>News</th><th>Social</th><th>Risk</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ai-weekly-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ai-divider"></div>
+
+                <!-- Top 10 Market Scanner -->
+                <div class="ai-weekly-section">
+                    <div class="ai-section-header">
+                        <h3 class="ai-section-title">📊 Top 10 AI Swing Trades Today</h3>
+                        <span class="ai-section-sub">Large-scale scan · ~{{UNIVERSE_COUNT}} stocks · Updated daily</span>
+                    </div>
+
+                    <div id="scanner-status-bar" class="scanner-status-bar hidden"></div>
+
+                    <div id="scanner-content">
+                        <div class="table-container">
+                            <table id="scanner-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th><th>Stock</th><th>Setup</th><th>Swing Score</th>
+                                        <th>Entry</th><th>Target</th><th>Expected Return</th><th>Confidence</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scanner-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="scanner-footer">
+                        <button id="btn-refresh-scanner" class="btn btn-small">↻ Refresh Scanner</button>
+                        <span class="scanner-last-scan" id="scanner-last-scan"></span>
+                    </div>
+                </div>
+            </main><!-- /view-ai-weekly -->
+
+        </div><!-- /content-area -->
+    </div><!-- /main-area -->
+</div><!-- /app-layout -->
+
+<!-- ══════════════════════════════════════════════════ MODAL: SETTINGS ═══ -->
+<div id="settings-modal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Settings</h2>
+            <button id="btn-close-modal" class="btn btn-icon">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="setting-group">
+                <label>Watchlist</label>
+                <div id="watchlist-tags" class="tag-container"></div>
+                <div class="tag-input-row">
+                    <input type="text" id="add-ticker-input" placeholder="Add ticker..." maxlength="6">
+                    <button id="btn-add-ticker" class="btn btn-small">+ Add</button>
+                </div>
+            </div>
+            <div class="setting-group">
+                <label>Watchlist Groups</label>
+                <div id="groups-editor"></div>
+                <div class="tag-input-row" style="margin-top:8px">
+                    <input type="text" id="add-group-input" placeholder="New group name...">
+                    <button id="btn-add-group" class="btn btn-small">+ Add Group</button>
+                </div>
+            </div>
+            <div class="settings-grid">
+                <div class="setting-group"><label for="cfg-ema-fast">EMA Fast (20)</label><input type="number" id="cfg-ema-fast" min="2" max="50"></div>
+                <div class="setting-group"><label for="cfg-ema-slow">EMA Slow (50)</label><input type="number" id="cfg-ema-slow" min="5" max="200"></div>
+                <div class="setting-group"><label for="cfg-rsi">RSI Period</label><input type="number" id="cfg-rsi" min="5" max="30"></div>
+                <div class="setting-group"><label for="cfg-macd-fast">MACD Fast</label><input type="number" id="cfg-macd-fast" min="5" max="30"></div>
+                <div class="setting-group"><label for="cfg-macd-slow">MACD Slow</label><input type="number" id="cfg-macd-slow" min="10" max="50"></div>
+                <div class="setting-group"><label for="cfg-macd-signal">MACD Signal</label><input type="number" id="cfg-macd-signal" min="3" max="20"></div>
+                <div class="setting-group"><label for="cfg-account">Capital (£)</label><input type="number" id="cfg-account" min="100" step="50"></div>
+                <div class="setting-group"><label for="cfg-risk">Risk per Trade (%)</label><input type="number" id="cfg-risk" min="0.5" max="10" step="0.5"></div>
+                <div class="setting-group"><label for="cfg-volume">Volume Spike (x)</label><input type="number" id="cfg-volume" min="1" max="5" step="0.1"></div>
+                <div class="setting-group"><label for="cfg-min-score">Min Score</label><input type="number" id="cfg-min-score" min="0" max="100"></div>
+                <div class="setting-group"><label for="cfg-refresh">Auto-Refresh (min)</label><input type="number" id="cfg-refresh" min="1" max="60" step="1"></div>
+                <div class="setting-group"><label for="cfg-polygon-key">Polygon API Key</label><input type="text" id="cfg-polygon-key" placeholder="Optional — primary data source"></div>
+                <div class="setting-group"><label for="cfg-alpha-key">Alpha Vantage Key</label><input type="text" id="cfg-alpha-key" placeholder="Optional — fallback data source"></div>
+            </div>
+            <div class="setting-group">
+                <label>Alert Settings</label>
+                <div class="alert-toggles">
+                    <label class="toggle-label"><input type="checkbox" id="cfg-sound"> Sound alerts</label>
+                    <label class="toggle-label"><input type="checkbox" id="cfg-browser-notif"> Browser notifications</label>
+                    <label class="toggle-label"><input type="checkbox" id="cfg-toast"> Toast popups</label>
+                </div>
+            </div>
+            <div class="setting-group">
+                <label>Preset Auto-Alerts</label>
+                <div id="preset-alert-toggles" class="alert-toggles"></div>
             </div>
         </div>
+        <div class="modal-footer">
+            <button id="btn-save-settings" class="btn btn-primary">Save Settings</button>
+            <button id="btn-cancel-settings" class="btn">Cancel</button>
+        </div>
+    </div>
+</div>
 
-    </main>
+<!-- ════════════════════════════════════════════════ MODAL: JOURNAL ═══ -->
+<div id="journal-modal" class="modal hidden">
+    <div class="modal-content modal-wide">
+        <div class="modal-header">
+            <h2>Trade Journal</h2>
+            <button id="btn-close-journal" class="btn btn-icon">&times;</button>
+        </div>
+        <div class="modal-body">
+            <button id="btn-add-journal" class="btn btn-primary btn-small" style="margin-bottom:16px">+ New Entry</button>
+            <button id="btn-export-journal" class="btn btn-small" style="margin-bottom:16px;margin-left:8px">Export CSV</button>
+            <div id="journal-form" class="hidden" style="margin-bottom:16px">
+                <div class="settings-grid">
+                    <div class="setting-group"><label>Ticker</label><input type="text" id="j-ticker" maxlength="6"></div>
+                    <div class="setting-group"><label>Type</label><select id="j-type"><option>BUY</option><option>SELL</option></select></div>
+                    <div class="setting-group"><label>Entry Price</label><input type="number" id="j-entry" step="0.01"></div>
+                    <div class="setting-group"><label>Entry Date</label><input type="date" id="j-entry-date"></div>
+                    <div class="setting-group"><label>Exit Price</label><input type="number" id="j-exit" step="0.01"></div>
+                    <div class="setting-group"><label>Exit Date</label><input type="date" id="j-exit-date"></div>
+                    <div class="setting-group"><label>Shares</label><input type="number" id="j-shares" min="1"></div>
+                </div>
+                <div class="setting-group"><label>Notes</label><input type="text" id="j-notes" placeholder="Trade notes..."></div>
+                <button id="btn-submit-journal" class="btn btn-primary btn-small">Save Entry</button>
+                <button id="btn-cancel-journal" class="btn btn-small">Cancel</button>
+            </div>
+            <table class="journal-table">
+                <thead><tr><th>Date</th><th>Ticker</th><th>Type</th><th>Entry</th><th>Exit</th><th>Shares</th><th>P&amp;L</th><th>1W</th><th>2W</th><th>3W</th><th>4W</th><th>Status</th><th>Notes</th><th></th></tr></thead>
+                <tbody id="journal-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
-    <!-- Toast Notifications -->
-    <div id="toast-container" class="toast-container"></div>
+<!-- ══════════════════════════════════════ MODAL: CLOSE SIM TRADE ═══ -->
+<div id="sim-close-modal" class="modal hidden">
+    <div class="modal-content" style="max-width:420px">
+        <div class="modal-header">
+            <h2>Close Trade</h2>
+            <button id="btn-close-sim-modal" class="btn btn-icon">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="setting-group">
+                <label>Exit Price (£)</label>
+                <input type="number" id="sim-close-price" step="0.01" placeholder="0.00" style="width:160px">
+            </div>
+            <p style="color:var(--text2);font-size:12px;margin-top:8px">Enter the price at which you are closing this trade.</p>
+        </div>
+        <div class="modal-footer">
+            <button id="btn-sim-close-confirm" class="btn btn-primary">Close Trade</button>
+            <button id="btn-sim-close-cancel" class="btn">Cancel</button>
+        </div>
+    </div>
+</div>
 
-    <script src="/static/app.js"></script>
+<!-- Toast Container -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- Hidden JS stubs for backward-compatible event listeners -->
+<div id="js-btn-stubs" style="display:none">
+    <button id="btn-ai-weekly"></button>
+    <button id="btn-backtest-nav"></button>
+    <button id="btn-portfolio"></button>
+    <button id="btn-heatmap"></button>
+    <button id="btn-simulator"></button>
+</div>
+
+<script src="/static/app.js"></script>
+<script>
+/* ── Sidebar Navigation Helper ─────────────────────────────────────── */
+const _sidebarTitles = {
+    dashboard:  'Dashboard',
+    'ai-weekly': 'AI This Week',
+    top10:      'Top 10 Today',
+    scanner:    'Scanner',
+    watchlist:  'Watchlist',
+    simulator:  'Trade Simulator',
+    backtest:   'Backtest',
+    portfolio:  'Portfolio',
+    heatmap:    'Heatmap',
+};
+
+function sidebarNav(view) {
+    // Update active nav item
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    const navEl = document.getElementById('nav-' + view);
+    if (navEl) navEl.classList.add('active');
+
+    // Update breadcrumb
+    const titleEl = document.getElementById('header-page-title');
+    if (titleEl) titleEl.textContent = _sidebarTitles[view] || view;
+
+    // Close mobile sidebar
+    if (window.innerWidth <= 768) closeSidebar();
+
+    // Ensure all views are hidden first (some show* functions miss view-ai-weekly)
+    if (typeof _hideAllViews === 'function') _hideAllViews();
+
+    // Route to the correct view
+    switch (view) {
+        case 'dashboard':
+            showSummary();
+            break;
+        case 'ai-weekly':
+            showAiWeekly();
+            break;
+        case 'top10':
+            showSummary();
+            setTimeout(() => {
+                const el = document.getElementById('top10-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+            break;
+        case 'scanner':
+            showSummary();
+            setTimeout(() => {
+                const el = document.getElementById('screener-filters');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+            break;
+        case 'watchlist':
+            showSummary();
+            setTimeout(() => {
+                const el = document.getElementById('watchlist-panel');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+            break;
+        case 'simulator':
+            showSimulator();
+            break;
+        case 'backtest':
+            showBacktest('');
+            break;
+        case 'portfolio':
+            showPortfolio();
+            break;
+        case 'heatmap':
+            showHeatmap();
+            break;
+    }
+}
+
+function toggleSidebar() {
+    const sidebar  = document.getElementById('sidebar');
+    const overlay  = document.getElementById('sidebar-overlay');
+    const layout   = document.getElementById('app-layout');
+    if (window.innerWidth <= 768) {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('active');
+    } else {
+        layout.classList.toggle('sidebar-collapsed');
+    }
+}
+
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+}
+
+// Keep breadcrumb in sync when JS-level navigation is used
+const _origShowSummary  = typeof showSummary !== 'undefined' ? null : null;
+</script>
 </body>
 </html>
