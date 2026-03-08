@@ -115,6 +115,8 @@ async function runScan() {
         fetchTopSetups();
         renderWatchlistPanel();
         fetchScannerTop10Dashboard();
+        // Auto-fill position calculator from top BUY result
+        _autoFillCalcFromScan();
     } catch (err) {
         console.error('Scan failed:', err);
     }
@@ -1802,6 +1804,8 @@ function renderTopSetups(setups) {
     if (heroSec) {
         heroSec.classList.remove('hidden');
         renderHeroCard(qualified[0]);
+        // Fetch sparkline for hero ticker
+        fetchAndRenderSparklines([qualified[0].ticker], '');
     }
 
     // §2 Top 3 cards
@@ -1850,19 +1854,23 @@ function renderHeroCard(r) {
     const target     = (r.target || 0);
     const retPct     = entry > 0 && target > 0 ? ((target - entry) / entry * 100) : 0;
     const retSign    = retPct >= 0 ? '+' : '';
-    const signalRaw  = (r.signal || 'HOLD').toLowerCase().replace(' ', '-');
+    const signalRaw  = (r.signal || 'HOLD').toLowerCase().replace(/ /g, '-');
+    const scoreClass = score >= 80 ? 'score-high' : score >= 70 ? 'score-mid' : '';
     const conf       = score >= 80 ? 'High' : score >= 70 ? 'Medium' : 'Low';
-    const confClass  = conf === 'High' ? '' : 'conf-medium';
+    const confCls    = score >= 80 ? 'conf-high' : 'conf-medium';
     el.innerHTML = `
         <div class="hero-card-left">
             <div class="hero-ticker">${r.ticker}</div>
             <div class="hero-price">$${(r.price || 0).toFixed(2)}</div>
-            <span class="setup-badge ${setupClass}" style="font-size:11px">${setupType}</span>
+            <span class="setup-badge ${setupClass}" style="font-size:11px;margin-top:4px">${setupType}</span>
+            <div class="hero-sparkline sparkline-wrap" id="sparkline-hero" style="margin-top:10px">
+                <div class="sparkline-loading" style="width:110px;height:34px;border-radius:4px"></div>
+            </div>
         </div>
         <div class="hero-card-center">
             <div class="hero-setup-row">
-                <span class="hero-score-badge">${score.toFixed(0)}</span>
-                <span class="hero-confidence ${confClass}">${conf} Conviction</span>
+                <span class="hero-score-badge score-pill ${scoreClass}" style="font-size:18px;padding:5px 14px">${score.toFixed(0)}</span>
+                <span class="confidence-badge ${confCls}">${conf} Conviction</span>
                 <span class="hero-signal-badge ${signalRaw}">${r.signal || 'HOLD'}</span>
             </div>
             <div class="hero-levels">
@@ -1885,12 +1893,14 @@ function renderHeroCard(r) {
             </div>
         </div>
         <div class="hero-card-right">
-            <div class="hero-rr">R:R = ${r.rr_ratio ? r.rr_ratio.toFixed(1) : '-'}R</div>
+            <div class="hero-rr" style="font-size:13px;font-weight:700;color:var(--text)">R:R = ${r.rr_ratio ? r.rr_ratio.toFixed(1) : '-'}R</div>
             ${r.win_rate ? `<div class="hero-rr">Win ${(r.win_rate*100).toFixed(0)}%</div>` : ''}
         </div>
     `;
     el.onclick = () => showDetail(r.ticker);
     el.title = `Click to view ${r.ticker} detail`;
+    // Store ticker so sparkline fetch can target it
+    el.dataset.ticker = r.ticker;
 }
 
 /* ─── Trade Simulator ──────────────────────────────────────────────────── */
@@ -2352,7 +2362,9 @@ async function fetchScannerTop10Dashboard() {
             if (statusEl) {
                 statusEl.innerHTML = `<div class="scanner-status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px"></div>${data.total_scanned || '?'} stocks scanned`;
             }
-            renderTop10Section(qualified.slice(0, 10));
+            const top10 = qualified.slice(0, 10);
+            renderTop10Section(top10);
+            fetchAndRenderSparklines(top10.map(r => r.ticker), 't10');
         }
     } catch (e) { /* silent — section stays hidden */ }
 }
@@ -2390,7 +2402,9 @@ function renderTop10Section(rows) {
             </div>
             <div class="top10-right">
                 ${tgt ? `<span class="top10-ret ${retClass}">${tgt}</span>` : ''}
-                ${r.target ? `<span style="font-size:10px;color:var(--text3)">→ $${r.target.toFixed(2)}</span>` : ''}
+                <div class="sparkline-wrap" id="sparkline-t10-${r.ticker}">
+                    <div class="sparkline-loading" style="width:60px;height:22px;border-radius:3px"></div>
+                </div>
             </div>
         </div>`;
     }).join('');
@@ -2398,9 +2412,9 @@ function renderTop10Section(rows) {
 
 /* ═══════════════════════════════════════ §5 WATCHLIST PANEL ═══ */
 function renderWatchlistPanel() {
-    const panel  = document.getElementById('watchlist-panel');
-    const chips  = document.getElementById('watchlist-chips');
-    if (!panel || !chips) return;
+    const panel = document.getElementById('watchlist-panel');
+    const grid  = document.getElementById('watchlist-cards');
+    if (!panel || !grid) return;
 
     const tickers = (currentConfig && currentConfig.tickers) ? currentConfig.tickers : [];
     if (tickers.length === 0) { panel.classList.add('hidden'); return; }
@@ -2409,24 +2423,54 @@ function renderWatchlistPanel() {
     const resultMap = {};
     (scanResults || []).forEach(r => { resultMap[r.ticker] = r; });
 
-    chips.innerHTML = tickers.map(t => {
-        const r      = resultMap[t];
-        const signal = r ? r.signal : '';
-        const score  = r ? (r.swing_score != null ? r.swing_score : (r.score || 0)) : 0;
-        const cls    = !signal ? '' :
-                       signal === 'STRONG BUY'  ? 'chip-strong-buy' :
-                       signal === 'BUY'         ? 'chip-buy' :
-                       signal === 'HOLD'        ? 'chip-hold' :
-                       signal === 'SELL'        ? 'chip-sell' :
-                       signal === 'STRONG SELL' ? 'chip-strong-sell' : '';
-        const scoreTxt = score > 0 ? `<span class="chip-score">${score.toFixed(0)}</span>` : '';
-        return `<span class="watchlist-chip ${cls}" onclick="showDetail('${t}')" title="${signal || 'No signal yet'}">${t}${scoreTxt}</span>`;
+    grid.innerHTML = tickers.map(t => {
+        const r       = resultMap[t];
+        const signal  = r ? r.signal : '';
+        const price   = r ? r.price : null;
+        const score   = r ? (r.swing_score != null ? r.swing_score : (r.score || 0)) : 0;
+        const entry   = r ? (r.entry || r.price || 0) : 0;
+        const stop    = r ? (r.stop_loss || 0) : 0;
+        const target  = r ? (r.target || 0) : 0;
+
+        const signalKey = (signal || '').toLowerCase().replace(/ /g, '-');
+        const cardCls   = !signal ? '' :
+                          signal === 'STRONG BUY'  ? 'wl-strong-buy' :
+                          signal === 'BUY'         ? 'wl-buy' :
+                          signal === 'HOLD'        ? 'wl-hold' :
+                          signal === 'SELL'        ? 'wl-sell' :
+                          signal === 'STRONG SELL' ? 'wl-strong-sell' : '';
+        const scoreClass = score >= 80 ? 'score-high' : score >= 70 ? 'score-mid' : '';
+
+        return `
+        <div class="wl-card ${cardCls}" onclick="showDetail('${t}')" title="View ${t}">
+            <div class="wl-card-header">
+                <span class="wl-ticker">${t}</span>
+                ${price ? `<span class="wl-price">$${price.toFixed(2)}</span>` : ''}
+            </div>
+            <div class="wl-mid-row">
+                ${score > 0 ? `<span class="score-pill ${scoreClass}" style="font-size:10px;padding:2px 7px">${score.toFixed(0)}</span>` : ''}
+                ${signal ? `<span class="wl-signal-badge wl-signal-${signalKey}">${signal}</span>` : '<span style="font-size:10px;color:var(--text3)">No signal</span>'}
+            </div>
+            ${entry > 0 ? `
+            <div class="wl-card-levels">
+                <div class="wl-level-item"><div class="wl-level-label">Entry</div><div class="wl-level-val wl-entry">$${entry.toFixed(2)}</div></div>
+                <div class="wl-level-item"><div class="wl-level-label">Stop</div><div class="wl-level-val wl-stop">$${stop.toFixed(2)}</div></div>
+                <div class="wl-level-item"><div class="wl-level-label">Target</div><div class="wl-level-val wl-target">$${target.toFixed(2)}</div></div>
+            </div>` : ''}
+            <div class="wl-sparkline-row">
+                <div class="sparkline-wrap" id="sparkline-wl-${t}">
+                    <div class="sparkline-loading" style="width:90px;height:26px;border-radius:3px"></div>
+                </div>
+            </div>
+        </div>`;
     }).join('');
 
     panel.classList.remove('hidden');
+    // Queue sparkline fetch for all watchlist tickers
+    fetchAndRenderSparklines(tickers, 'wl');
 }
 
-/* ═══════════════════════════════════ §6 SIM QUICK CARD ═══ */
+/* ═══════════════════════════════════ §6 POSITION CALCULATOR + STATS ═══ */
 async function loadSimQuickCard() {
     const card = document.getElementById('sim-quick-card');
     if (!card) return;
@@ -2436,25 +2480,135 @@ async function loadSimQuickCard() {
         const s    = data.summary || {};
         const open = (data.open_trades || []).length;
 
-        // Unrealised P&L from open trades
         const unrealised = (data.open_trades || []).reduce((acc, t) => acc + (t.live_pnl || 0), 0);
         const closed     = (data.closed_trades || []).length;
         const totalPnl   = s.total_pnl || 0;
         const winRate    = s.win_rate != null ? (s.win_rate * 100).toFixed(0) + '%' : '—';
-
         const fmt = (v) => (v >= 0 ? '+' : '') + '£' + Math.abs(v).toFixed(2);
-        const cls = (v) => v >= 0 ? 'positive' : 'negative';
+        const cls = (v) => v >= 0 ? 'sss-value positive' : 'sss-value negative';
 
-        document.getElementById('sq-open').textContent      = open;
-        document.getElementById('sq-unrealised').textContent = unrealised !== 0 ? fmt(unrealised) : '£0.00';
-        document.getElementById('sq-unrealised').className   = 'sq-value ' + (unrealised !== 0 ? cls(unrealised) : '');
-        document.getElementById('sq-closed').textContent    = closed;
-        document.getElementById('sq-total').textContent     = totalPnl !== 0 ? fmt(totalPnl) : '£0.00';
-        document.getElementById('sq-total').className       = 'sq-value ' + (totalPnl !== 0 ? cls(totalPnl) : '');
-        document.getElementById('sq-winrate').textContent   = winRate;
+        const sqOpen = document.getElementById('sq-open');
+        const sqUnr  = document.getElementById('sq-unrealised');
+        const sqClosed = document.getElementById('sq-closed');
+        const sqTotal  = document.getElementById('sq-total');
+        const sqWR     = document.getElementById('sq-winrate');
+        if (sqOpen)   sqOpen.textContent    = open;
+        if (sqUnr)  { sqUnr.textContent     = unrealised !== 0 ? fmt(unrealised) : '£0.00'; sqUnr.className = cls(unrealised); }
+        if (sqClosed) sqClosed.textContent  = closed;
+        if (sqTotal){ sqTotal.textContent   = totalPnl !== 0 ? fmt(totalPnl) : '£0.00'; sqTotal.className = cls(totalPnl); }
+        if (sqWR)     sqWR.textContent      = winRate;
 
         card.classList.remove('hidden');
     } catch (e) {
-        card.classList.add('hidden');
+        // Still show the calculator even if stats fail
+        card.classList.remove('hidden');
     }
+}
+
+/* ── Position Calculator ─────────────────────────────────────────────────── */
+function calcPosition() {
+    const capital  = parseFloat(document.getElementById('calc-capital')?.value) || 0;
+    const riskPct  = parseFloat(document.getElementById('calc-risk-pct')?.value) || 2;
+    const entry    = parseFloat(document.getElementById('calc-entry')?.value) || 0;
+    const stop     = parseFloat(document.getElementById('calc-stop')?.value) || 0;
+    const target   = parseFloat(document.getElementById('calc-target')?.value) || 0;
+
+    const set = (id, val, cls) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = val;
+        if (cls) el.className = 'sr-value ' + cls;
+    };
+
+    if (!entry || !stop || entry <= 0 || stop <= 0) {
+        set('cr-shares', '—', ''); set('cr-risk', '—', '');
+        set('cr-gain', '—', ''); set('cr-rr', '—', '');
+        set('cr-ret', '—', ''); set('cr-be', '—', '');
+        return;
+    }
+
+    const riskPerShare = Math.abs(entry - stop);
+    const dollarRisk   = capital * (riskPct / 100);
+    const shares       = riskPerShare > 0 ? Math.floor(dollarRisk / riskPerShare) : 0;
+    const actualRisk   = shares * riskPerShare;
+    const gain         = target > 0 ? shares * Math.abs(target - entry) : 0;
+    const rr           = actualRisk > 0 ? (gain / actualRisk) : 0;
+    const retOnCap     = capital > 0 ? (gain / capital * 100) : 0;
+    const breakEven    = entry; // entry is breakeven for a long
+
+    const rrCls = rr >= 2 ? 'positive' : rr >= 1 ? 'warn' : 'negative';
+    set('cr-shares', shares > 0 ? shares.toLocaleString() : '—', 'positive');
+    set('cr-risk',   actualRisk > 0 ? `-$${actualRisk.toFixed(0)}` : '—', 'negative');
+    set('cr-gain',   gain > 0 ? `+$${gain.toFixed(0)}` : '—', 'positive');
+    set('cr-rr',     rr > 0 ? `${rr.toFixed(1)}R` : '—', rrCls);
+    set('cr-ret',    retOnCap > 0 ? `+${retOnCap.toFixed(1)}%` : '—', 'positive');
+    set('cr-be',     `$${breakEven.toFixed(2)}`, '');
+}
+
+/* ═══════════════════════════════════════════════ SPARKLINES ═══ */
+
+/**
+ * Generates an inline SVG sparkline from an array of prices.
+ * Returns an SVG string ready to set as innerHTML.
+ */
+function generateSparklineSVG(prices, width = 80, height = 30) {
+    if (!prices || prices.length < 2) return '';
+    const min   = Math.min(...prices);
+    const max   = Math.max(...prices);
+    const range = max - min || 1;
+    const n     = prices.length;
+
+    const pts = prices.map((p, i) => {
+        const x = (i / (n - 1)) * width;
+        const y = height - ((p - min) / range) * (height - 4) - 2;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+
+    const lastChange = prices[n - 1] - prices[0];
+    const lineColor  = lastChange >= 0 ? '#22C55E' : '#EF4444';
+    const fillColor  = lastChange >= 0 ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)';
+
+    const fillPath = `0,${height} ${pts.join(' ')} ${width},${height}`;
+
+    return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
+        <polygon points="${fillPath}" fill="${fillColor}" stroke="none"/>
+        <polyline points="${pts.join(' ')}" fill="none" stroke="${lineColor}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>`;
+}
+
+/**
+ * Fetches sparklines for a list of tickers and renders them into matching
+ * #sparkline-{prefix}-{TICKER} elements already in the DOM.
+ * prefix: 'wl' (watchlist cards), 't10' (top-10 items), or '' (hero card)
+ */
+async function fetchAndRenderSparklines(tickers, prefix = 'wl') {
+    if (!tickers || tickers.length === 0) return;
+    try {
+        const res  = await fetch(`/api/sparklines?tickers=${tickers.join(',')}`);
+        const data = await res.json();
+        Object.entries(data).forEach(([ticker, prices]) => {
+            const svg  = generateSparklineSVG(prices,
+                prefix === 'wl' ? 90 : prefix === 't10' ? 60 : 110,
+                prefix === 'wl' ? 28 : prefix === 't10' ? 22 : 34);
+            const elId = prefix ? `sparkline-${prefix}-${ticker}` : 'sparkline-hero';
+            const el   = document.getElementById(elId);
+            if (el && svg) el.innerHTML = svg;
+        });
+    } catch (e) { /* silent — sparklines are non-critical */ }
+}
+
+/* ── Auto-fill position calculator from best BUY in scan results ─────────── */
+function _autoFillCalcFromScan() {
+    const buys = (scanResults || [])
+        .filter(r => r.signal && r.signal.includes('BUY') && r.entry && r.stop_loss && r.target)
+        .sort((a, b) => ((b.swing_score || b.score || 0) - (a.swing_score || a.score || 0)));
+    if (!buys.length) return;
+    const best = buys[0];
+    const entryEl  = document.getElementById('calc-entry');
+    const stopEl   = document.getElementById('calc-stop');
+    const targetEl = document.getElementById('calc-target');
+    if (entryEl && !entryEl.value)  { entryEl.value  = (best.entry || best.price || 0).toFixed(2); }
+    if (stopEl && !stopEl.value)    { stopEl.value   = (best.stop_loss || 0).toFixed(2); }
+    if (targetEl && !targetEl.value){ targetEl.value = (best.target || 0).toFixed(2); }
+    calcPosition();
 }

@@ -812,6 +812,47 @@ def api_professor_mode():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/sparklines")
+def api_sparklines():
+    """
+    Returns last 20 daily close prices for a comma-separated list of tickers.
+    Used by the frontend to render mini sparkline charts.
+    Example: /api/sparklines?tickers=AAPL,NVDA,TSLA
+    """
+    tickers_raw = request.args.get("tickers", "")
+    tickers = [t.strip().upper() for t in tickers_raw.split(",") if t.strip()][:40]
+    if not tickers:
+        return jsonify({})
+    try:
+        import yfinance as yf
+        result = {}
+        if len(tickers) == 1:
+            raw = yf.download(tickers[0], period="1mo", interval="1d",
+                              auto_adjust=True, progress=False)
+            if not raw.empty:
+                closes = [round(float(v), 2) for v in raw["Close"].dropna().tail(20)]
+                result[tickers[0]] = closes
+        else:
+            raw = yf.download(" ".join(tickers), period="1mo", interval="1d",
+                              group_by="ticker", auto_adjust=True,
+                              threads=True, progress=False)
+            if not raw.empty:
+                top_lvl = raw.columns.get_level_values(0)
+                for t in tickers:
+                    try:
+                        if t in top_lvl:
+                            closes = [round(float(v), 2)
+                                      for v in raw[t]["Close"].dropna().tail(20)]
+                            if closes:
+                                result[t] = closes
+                    except Exception:
+                        pass
+        return jsonify(result)
+    except Exception as e:
+        logging.error(f"/api/sparklines error: {e}")
+        return jsonify({})
+
+
 # ─── Entry Point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

@@ -218,24 +218,63 @@
             <div class="section-header-bar">
                 <span class="section-header-icon">&#128204;</span>
                 <h2 class="section-header-title">Watchlist</h2>
-                <span class="section-header-sub">Click any ticker to view detail</span>
+                <span class="section-header-sub">Score &middot; Entry &middot; Stop &middot; Target &middot; Mini chart</span>
                 <button class="btn btn-small btn-icon" onclick="openSettings()" title="Edit watchlist" style="margin-left:auto">&#9881;</button>
             </div>
-            <div id="watchlist-chips" class="watchlist-chips"></div>
+            <div id="watchlist-cards" class="watchlist-cards"></div>
         </div>
 
-        <!-- ── §6 Trade Simulator Quick Access ─────────────────────────── -->
+        <!-- ── §6 Trade Simulator ──────────────────────────────────────── -->
         <div id="sim-quick-card" class="sim-quick-card hidden">
             <div class="sim-quick-header">
-                <span class="sim-quick-title">&#127919; Trade Simulator</span>
-                <button class="btn btn-sim btn-small" onclick="showSimulator()">Open Full Simulator &rarr;</button>
+                <span class="sim-quick-title">&#127919; Position Calculator</span>
+                <button class="btn btn-sim btn-small" onclick="showSimulator()">Open Trade Log &rarr;</button>
             </div>
-            <div class="sim-quick-stats" id="sim-quick-stats">
-                <div class="sim-quick-stat"><div class="sq-label">Open Trades</div><div class="sq-value" id="sq-open">&#8212;</div></div>
-                <div class="sim-quick-stat"><div class="sq-label">Unrealised P&amp;L</div><div class="sq-value" id="sq-unrealised">&#8212;</div></div>
-                <div class="sim-quick-stat"><div class="sq-label">Closed Trades</div><div class="sq-value" id="sq-closed">&#8212;</div></div>
-                <div class="sim-quick-stat"><div class="sq-label">Total P&amp;L</div><div class="sq-value" id="sq-total">&#8212;</div></div>
-                <div class="sim-quick-stat"><div class="sq-label">Win Rate</div><div class="sq-value" id="sq-winrate">&#8212;</div></div>
+            <div class="sim-panel-body">
+                <!-- Left: calculator inputs -->
+                <div class="sim-calc-side">
+                    <div class="sim-calc-grid">
+                        <div class="sim-field">
+                            <label class="sim-label">Capital ($)</label>
+                            <input type="number" id="calc-capital" class="sim-input" placeholder="10000" value="10000" min="100" step="100" oninput="calcPosition()">
+                        </div>
+                        <div class="sim-field">
+                            <label class="sim-label">Risk % per Trade</label>
+                            <input type="number" id="calc-risk-pct" class="sim-input" placeholder="2" value="2" min="0.1" max="10" step="0.1" oninput="calcPosition()">
+                        </div>
+                        <div class="sim-field">
+                            <label class="sim-label">Entry Price ($)</label>
+                            <input type="number" id="calc-entry" class="sim-input" placeholder="0.00" step="0.01" oninput="calcPosition()">
+                        </div>
+                        <div class="sim-field">
+                            <label class="sim-label">Stop Loss ($)</label>
+                            <input type="number" id="calc-stop" class="sim-input" placeholder="0.00" step="0.01" oninput="calcPosition()">
+                        </div>
+                        <div class="sim-field">
+                            <label class="sim-label">Target ($)</label>
+                            <input type="number" id="calc-target" class="sim-input" placeholder="0.00" step="0.01" oninput="calcPosition()">
+                        </div>
+                    </div>
+                </div>
+                <!-- Right: calculated results -->
+                <div class="sim-results-side">
+                    <div class="sim-result-grid" id="calc-results">
+                        <div class="sim-result-card"><div class="sr-label">Position Size</div><div class="sr-value positive" id="cr-shares">—</div><div class="sr-sub">shares</div></div>
+                        <div class="sim-result-card"><div class="sr-label">Dollar Risk</div><div class="sr-value negative" id="cr-risk">—</div><div class="sr-sub">max loss</div></div>
+                        <div class="sim-result-card"><div class="sr-label">Potential Gain</div><div class="sr-value positive" id="cr-gain">—</div><div class="sr-sub">at target</div></div>
+                        <div class="sim-result-card"><div class="sr-label">R:R Ratio</div><div class="sr-value" id="cr-rr">—</div><div class="sr-sub">reward/risk</div></div>
+                        <div class="sim-result-card"><div class="sr-label">Return %</div><div class="sr-value positive" id="cr-ret">—</div><div class="sr-sub">on capital</div></div>
+                        <div class="sim-result-card"><div class="sr-label">Break Even</div><div class="sr-value" id="cr-be">—</div><div class="sr-sub">$/share</div></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Bottom: account stats strip -->
+            <div class="sim-stats-strip">
+                <div class="sim-strip-stat"><span class="sss-label">Open</span><span class="sss-value" id="sq-open">—</span></div>
+                <div class="sim-strip-stat"><span class="sss-label">Unrealised P&amp;L</span><span class="sss-value" id="sq-unrealised">—</span></div>
+                <div class="sim-strip-stat"><span class="sss-label">Total P&amp;L</span><span class="sss-value" id="sq-total">—</span></div>
+                <div class="sim-strip-stat"><span class="sss-label">Win Rate</span><span class="sss-value" id="sq-winrate">—</span></div>
+                <div class="sim-strip-stat"><span class="sss-label">Closed</span><span class="sss-value" id="sq-closed">—</span></div>
             </div>
         </div>
 
