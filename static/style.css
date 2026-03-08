@@ -1874,3 +1874,409 @@ select:focus { border-color: var(--green); }
     .screener-filters.filters-expanded .filter-row { display: flex; }
     .screener-filters.filters-expanded .filter-presets-row { display: flex; }
 }
+
+/* ═══════════════════════════════════════════════ AI WEEKLY INTELLIGENCE ═══ */
+
+/* ── Nav button ──────────────────────────────────────────────────────────── */
+.btn-ai-weekly {
+    background: linear-gradient(135deg, rgba(34,197,94,0.18) 0%, rgba(96,165,250,0.12) 100%);
+    border: 1px solid rgba(34,197,94,0.4);
+    color: var(--green);
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+.btn-ai-weekly::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(34,197,94,0.08), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.btn-ai-weekly:hover {
+    background: linear-gradient(135deg, rgba(34,197,94,0.28) 0%, rgba(96,165,250,0.18) 100%);
+    border-color: rgba(34,197,94,0.65);
+    box-shadow: 0 0 18px rgba(34,197,94,0.25);
+}
+.btn-ai-weekly:hover::before { opacity: 1; }
+
+/* ── Section wrapper ─────────────────────────────────────────────────────── */
+.ai-weekly-section {
+    padding: 20px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.ai-section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.ai-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+}
+
+.ai-section-sub {
+    font-size: 11px;
+    color: var(--text3);
+    font-variant-numeric: tabular-nums;
+}
+
+.ai-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 24px;
+    opacity: 0.5;
+}
+
+/* ── Loading state ────────────────────────────────────────────────────────── */
+.ai-section-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 48px 24px;
+    color: var(--text2);
+    font-size: 13px;
+}
+
+.ai-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border2);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.85s linear infinite;
+}
+
+/* ── Professor Mode Panel ─────────────────────────────────────────────────── */
+.professor-panel {
+    margin: 16px 24px;
+    background: linear-gradient(135deg, #111827 0%, #0d1520 100%);
+    border: 1px solid rgba(96,165,250,0.25);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.professor-panel::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(96,165,250,0.08) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.professor-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(96,165,250,0.15);
+    background: rgba(96,165,250,0.04);
+}
+
+.professor-icon {
+    font-size: 28px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.professor-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--blue);
+    letter-spacing: 0.3px;
+}
+
+.professor-subtitle {
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 2px;
+}
+
+.professor-condition-badge {
+    margin-left: auto;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.cond-bull   { background: rgba(34,197,94,0.15);  color: var(--green);  border: 1px solid rgba(34,197,94,0.3); }
+.cond-bear   { background: rgba(239,68,68,0.15);   color: var(--red);    border: 1px solid rgba(239,68,68,0.3); }
+.cond-neutral{ background: rgba(245,158,11,0.12);  color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+.cond-crisis { background: rgba(239,68,68,0.20);   color: #ff7070;       border: 1px solid rgba(239,68,68,0.5); }
+
+.professor-body {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.professor-advice {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.65;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.03);
+    border-left: 3px solid var(--blue);
+    border-radius: 0 6px 6px 0;
+}
+
+.professor-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.prof-metric {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: center;
+}
+
+.prof-metric-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text3);
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.prof-metric-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+/* ── Sector Bars ──────────────────────────────────────────────────────────── */
+.sector-strength-section { }
+.sector-strength-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text3);
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.sector-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sector-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sector-bar-label {
+    font-size: 11px;
+    color: var(--text2);
+    width: 90px;
+    flex-shrink: 0;
+    font-weight: 500;
+}
+
+.sector-bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.sector-bar-fill {
+    position: absolute;
+    top: 0; bottom: 0;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
+.sector-bar-fill.positive { background: var(--green); left: 50%; }
+.sector-bar-fill.negative { background: var(--red);   right: 50%; }
+
+.sector-bar-value {
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    width: 48px;
+    text-align: right;
+    flex-shrink: 0;
+}
+.sector-bar-value.positive { color: var(--green); }
+.sector-bar-value.negative { color: var(--red); }
+
+/* ── Strategy line ────────────────────────────────────────────────────────── */
+.professor-strategy {
+    font-size: 12px;
+    color: var(--text2);
+    padding: 10px 14px;
+    background: rgba(245,158,11,0.05);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 6px;
+    line-height: 1.6;
+}
+
+.strategy-label {
+    color: var(--yellow);
+    font-weight: 700;
+    margin-right: 6px;
+}
+
+/* ── Weekly Top-3 Table ───────────────────────────────────────────────────── */
+#ai-weekly-table th,
+#ai-weekly-table td {
+    white-space: nowrap;
+}
+
+.ai-rank-cell {
+    font-size: 18px;
+    font-weight: 900;
+    text-align: center;
+    width: 40px;
+}
+
+.ai-rank-1 { color: #FFD700; }
+.ai-rank-2 { color: #C0C0C0; }
+.ai-rank-3 { color: #CD7F32; }
+
+.ai-ticker-cell {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: 0.5px;
+}
+
+.ai-ticker-cell:hover { color: var(--blue); cursor: pointer; }
+
+.ai-pipe-score {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    background: rgba(107,114,128,0.12);
+    border: 1px solid var(--border);
+    color: var(--text2);
+}
+
+.ai-pipe-score.high { background: rgba(34,197,94,0.12); color: var(--green); border-color: rgba(34,197,94,0.3); }
+.ai-pipe-score.mid  { background: rgba(245,158,11,0.12); color: var(--yellow); border-color: rgba(245,158,11,0.3); }
+.ai-pipe-score.low  { background: rgba(239,68,68,0.10); color: var(--red); border-color: rgba(239,68,68,0.25); }
+
+.confidence-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.conf-high   { background: rgba(34,197,94,0.15);  color: var(--green);  border: 1px solid rgba(34,197,94,0.35); }
+.conf-medium { background: rgba(245,158,11,0.12); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+.conf-low    { background: rgba(239,68,68,0.10);  color: var(--red);    border: 1px solid rgba(239,68,68,0.25); }
+
+/* ── AI row animation ─────────────────────────────────────────────────────── */
+#ai-weekly-table tbody tr,
+#scanner-table tbody tr {
+    animation: fadeIn 0.3s ease both;
+}
+
+#ai-weekly-table tbody tr:nth-child(1) { animation-delay: 0.05s; }
+#ai-weekly-table tbody tr:nth-child(2) { animation-delay: 0.10s; }
+#ai-weekly-table tbody tr:nth-child(3) { animation-delay: 0.15s; }
+
+#scanner-table tbody tr:nth-child(n) { animation-delay: calc(0.04s * var(--i, 0)); }
+
+/* ── Scanner status bar ───────────────────────────────────────────────────── */
+.scanner-status-bar {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: 7px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.scanner-status-bar.status-running {
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.25);
+    color: var(--yellow);
+}
+.scanner-status-bar.status-ready {
+    background: rgba(34,197,94,0.07);
+    border: 1px solid rgba(34,197,94,0.2);
+    color: var(--green);
+}
+.scanner-status-bar.status-error {
+    background: rgba(239,68,68,0.07);
+    border: 1px solid rgba(239,68,68,0.2);
+    color: var(--red);
+}
+
+.scanner-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.status-running .scanner-status-dot { background: var(--yellow); animation: pulse 1.2s ease-in-out infinite; }
+.status-ready   .scanner-status-dot { background: var(--green); }
+.status-error   .scanner-status-dot { background: var(--red); }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* ── Scanner footer ───────────────────────────────────────────────────────── */
+.scanner-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0 4px;
+}
+
+.scanner-last-scan {
+    font-size: 10px;
+    color: var(--text3);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .professor-metrics { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+    .professor-metrics { grid-template-columns: 1fr 1fr; }
+    .ai-weekly-section { padding: 14px 14px; }
+    .professor-panel { margin: 10px 14px; }
+}

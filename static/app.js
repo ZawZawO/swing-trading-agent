@@ -18,6 +18,7 @@ let previousPresetMatches = {};
 let presetAlertEnabled = {};
 let simTradeToClose = null;
 let marketOverviewData = null;
+let _scannerPollTimer = null;
 
 /* ─── Init ─────────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
@@ -79,6 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', () => {
         if (!alertAudioCtx) alertAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }, { once: true });
+
+    // AI Weekly Intelligence
+    document.getElementById('btn-ai-weekly').addEventListener('click', showAiWeekly);
+    document.getElementById('btn-back-ai-weekly').addEventListener('click', showSummary);
+    document.getElementById('btn-refresh-ai-weekly').addEventListener('click', () => loadAiWeekly(true));
+    document.getElementById('btn-refresh-scanner').addEventListener('click', () => loadMarketScanner(true));
 
     runScan();
 });
@@ -498,11 +505,13 @@ async function showDetail(ticker) {
 function showSummary() {
     destroyCharts();
     if (equityChart) { equityChart.remove(); equityChart = null; }
+    clearTimeout(_scannerPollTimer);
     document.getElementById('view-detail').classList.add('hidden');
     document.getElementById('view-backtest').classList.add('hidden');
     document.getElementById('view-portfolio').classList.add('hidden');
     document.getElementById('view-heatmap').classList.add('hidden');
     document.getElementById('view-simulator').classList.add('hidden');
+    document.getElementById('view-ai-weekly').classList.add('hidden');
     document.getElementById('view-summary').classList.remove('hidden');
 }
 
@@ -2020,4 +2029,209 @@ function updateSimRiskHint() {
     } else {
         hintEl.textContent = '';
     }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   AI WEEKLY INTELLIGENCE
+   ───────────────────────────────────────────────────────────────────────────── */
+
+const ALL_VIEWS = [
+    'view-summary','view-detail','view-backtest','view-portfolio',
+    'view-heatmap','view-simulator','view-ai-weekly',
+];
+
+function _hideAllViews() {
+    ALL_VIEWS.forEach(id => document.getElementById(id).classList.add('hidden'));
+}
+
+function showAiWeekly() {
+    destroyCharts();
+    if (equityChart) { equityChart.remove(); equityChart = null; }
+    _hideAllViews();
+    document.getElementById('view-ai-weekly').classList.remove('hidden');
+    loadAiWeekly(false);
+    loadMarketScanner(false);
+}
+
+/* ── Weekly Top-3 + Professor Mode ──────────────────────────────────────── */
+async function loadAiWeekly(forceRefresh = false) {
+    const loading  = document.getElementById('ai-weekly-loading');
+    const profPanel = document.getElementById('professor-panel');
+    const lastScan  = document.getElementById('ai-weekly-last-scan');
+
+    loading.classList.remove('hidden');
+    document.getElementById('ai-weekly-loading-text').textContent = 'Running 5-step AI pipeline...';
+    profPanel.classList.add('hidden');
+
+    try {
+        const url = forceRefresh ? '/api/ai-weekly?refresh=1' : '/api/ai-weekly';
+        const res  = await fetch(url);
+        const data = await res.json();
+
+        if (data.error) throw new Error(data.error);
+
+        renderAiWeeklyTop3(data.top3 || []);
+        renderProfessorMode(data.professor || {});
+
+        if (data.last_scan) {
+            lastScan.textContent = `Last scan: ${data.last_scan}${data.cached ? ' (cached)' : ''}`;
+        }
+    } catch (e) {
+        document.getElementById('ai-weekly-body').innerHTML =
+            `<tr><td colspan="13" style="text-align:center;color:var(--red);padding:24px">
+                Failed to load AI analysis: ${e.message}
+            </td></tr>`;
+    } finally {
+        loading.classList.add('hidden');
+        profPanel.classList.remove('hidden');
+    }
+}
+
+function renderAiWeeklyTop3(rows) {
+    const tbody = document.getElementById('ai-weekly-body');
+    if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--text3);padding:24px">No data available</td></tr>';
+        return;
+    }
+    const rankEmoji = ['🥇','🥈','🥉'];
+    tbody.innerHTML = rows.map((r, i) => {
+        const score      = (r.swing_score || 0).toFixed(1);
+        const scoreClass = r.swing_score >= 70 ? 'score-high' : r.swing_score >= 50 ? 'score-mid' : '';
+        const setupClass = 'setup-' + (r.setup_type || 'Neutral').toLowerCase().replace(/\s+/g,'-');
+        const confClass  = 'conf-' + (r.confidence || 'low').toLowerCase();
+        const tgt        = r.target_pct != null ? (r.target_pct >= 0 ? '+' : '') + r.target_pct + '%' : '-';
+
+        const pipeScore = (val) => {
+            const v = Math.round(val || 0);
+            const cls = v >= 65 ? 'high' : v >= 45 ? 'mid' : 'low';
+            return `<span class="ai-pipe-score ${cls}">${v}</span>`;
+        };
+
+        return `<tr>
+            <td class="ai-rank-cell ai-rank-${i+1}">${rankEmoji[i] || i+1}</td>
+            <td class="ai-ticker-cell" onclick="showDetail('${r.ticker}')" title="View details">${r.ticker}</td>
+            <td><span class="setup-badge ${setupClass}">${r.setup_type || 'Neutral'}</span></td>
+            <td><span class="score-pill ${scoreClass}">${score}</span></td>
+            <td style="font-variant-numeric:tabular-nums">$${(r.entry||0).toFixed(2)}</td>
+            <td style="color:var(--red);font-variant-numeric:tabular-nums">$${(r.stop_loss||0).toFixed(2)}</td>
+            <td style="color:var(--green);font-variant-numeric:tabular-nums">$${(r.target||0).toFixed(2)}</td>
+            <td class="${(r.target_pct||0)>=0?'positive':'negative'}" style="font-weight:700">${tgt}</td>
+            <td><span class="confidence-badge ${confClass}">${r.confidence||'Low'}</span></td>
+            <td>${pipeScore(r.technical_score)}</td>
+            <td>${pipeScore(r.news_sentiment)}</td>
+            <td>${pipeScore(r.social_sentiment)}</td>
+            <td>${pipeScore(r.market_risk_score)}</td>
+        </tr>`;
+    }).join('');
+}
+
+/* ── Professor Mode ───────────────────────────────────────────────────────── */
+function renderProfessorMode(p) {
+    if (!p || !p.market_condition) return;
+
+    // Condition badge
+    const badge = document.getElementById('professor-condition-badge');
+    const cond  = (p.market_condition || '').toLowerCase();
+    badge.textContent = p.market_condition;
+    badge.className   = 'professor-condition-badge ' +
+        (cond.includes('bull') ? 'cond-bull' :
+         cond.includes('crisis') || cond.includes('high volt') ? 'cond-crisis' :
+         cond.includes('bear') || cond.includes('cautious') ? 'cond-bear' : 'cond-neutral');
+
+    document.getElementById('professor-timestamp').textContent  = p.timestamp || '';
+    document.getElementById('professor-advice').textContent     = p.advice || '';
+    document.getElementById('prof-market-condition').textContent = p.market_condition || '-';
+    document.getElementById('prof-vix').textContent             = p.vix ? `${p.vix} (${p.vix < 20 ? 'Low' : p.vix < 28 ? 'Medium' : 'High'})` : '-';
+
+    const riskEl = document.getElementById('prof-risk-level');
+    riskEl.textContent = p.risk_level || '-';
+    riskEl.style.color = (p.risk_level||'').toLowerCase().startsWith('low') ? 'var(--green)'
+                       : (p.risk_level||'').toLowerCase().startsWith('high') || (p.risk_level||'').toLowerCase().startsWith('very') ? 'var(--red)' : 'var(--yellow)';
+
+    document.getElementById('prof-best-sector').textContent = p.best_sector || '-';
+    document.getElementById('prof-best-sector').style.color = 'var(--green)';
+    document.getElementById('prof-strategy').textContent    = p.recommended_strategy || '';
+
+    // Sector bars
+    const barsEl = document.getElementById('sector-strength-bars');
+    const sectors = p.sector_strength || {};
+    const maxAbs  = Math.max(...Object.values(sectors).map(Math.abs), 0.01);
+    barsEl.innerHTML = Object.entries(sectors).map(([name, pct]) => {
+        const isPos = pct >= 0;
+        const width = Math.min(Math.abs(pct) / maxAbs * 50, 50);
+        return `<div class="sector-bar-row">
+            <span class="sector-bar-label">${name}</span>
+            <div class="sector-bar-track">
+                <div class="sector-bar-fill ${isPos ? 'positive' : 'negative'}"
+                     style="width:${width}%"></div>
+            </div>
+            <span class="sector-bar-value ${isPos ? 'positive' : 'negative'}">${isPos?'+':''}${pct.toFixed(1)}%</span>
+        </div>`;
+    }).join('');
+}
+
+/* ── Market Scanner Top-10 ────────────────────────────────────────────────── */
+async function loadMarketScanner(forceRefresh = false) {
+    clearTimeout(_scannerPollTimer);
+    const statusBar  = document.getElementById('scanner-status-bar');
+    const lastScanEl = document.getElementById('scanner-last-scan');
+
+    try {
+        const url = forceRefresh ? '/api/market-scanner?refresh=1' : '/api/market-scanner';
+        const res  = await fetch(url);
+        const data = await res.json();
+
+        if (data.status === 'running' || data.status === 'started') {
+            statusBar.className   = 'scanner-status-bar status-running';
+            statusBar.innerHTML   = '<div class="scanner-status-dot"></div>Scanning ~160 stocks in the background... auto-refreshing in 15s';
+            statusBar.classList.remove('hidden');
+            // Poll every 15 seconds
+            _scannerPollTimer = setTimeout(() => loadMarketScanner(false), 15000);
+            return;
+        }
+
+        if (data.status === 'ready' && data.top10 && data.top10.length > 0) {
+            statusBar.className  = 'scanner-status-bar status-ready';
+            statusBar.innerHTML  = `<div class="scanner-status-dot"></div>Scan complete — ${data.total_scanned} stocks analysed`;
+            statusBar.classList.remove('hidden');
+            renderMarketScanner(data.top10);
+            if (data.last_scan) {
+                lastScanEl.textContent = `Last scan: ${data.last_scan}${data.cached ? ' (24h cache)' : ''}`;
+            }
+        } else if (data.error) {
+            statusBar.className  = 'scanner-status-bar status-error';
+            statusBar.innerHTML  = `<div class="scanner-status-dot"></div>Scanner error: ${data.error}`;
+            statusBar.classList.remove('hidden');
+        }
+    } catch (e) {
+        statusBar.className = 'scanner-status-bar status-error';
+        statusBar.innerHTML = `<div class="scanner-status-dot"></div>Failed to reach scanner`;
+        statusBar.classList.remove('hidden');
+    }
+}
+
+function renderMarketScanner(rows) {
+    const tbody = document.getElementById('scanner-body');
+    if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">No data yet — scanner running...</td></tr>';
+        return;
+    }
+    tbody.innerHTML = rows.slice(0, 10).map((r, i) => {
+        const score      = (r.swing_score || 0).toFixed(1);
+        const scoreClass = r.swing_score >= 70 ? 'score-high' : r.swing_score >= 50 ? 'score-mid' : '';
+        const setupClass = 'setup-' + (r.setup_type || 'Neutral').toLowerCase().replace(/\s+/g,'-');
+        const tgt        = r.target_pct != null ? (r.target_pct >= 0 ? '+' : '') + r.target_pct + '%' : '-';
+        const confClass  = 'conf-' + (r.confidence || 'low').toLowerCase();
+
+        return `<tr style="--i:${i}">
+            <td style="color:var(--text3);font-weight:700;text-align:center">#${i+1}</td>
+            <td class="ai-ticker-cell" onclick="showDetail('${r.ticker}')" title="View details">${r.ticker}</td>
+            <td><span class="setup-badge ${setupClass}">${r.setup_type || 'Neutral'}</span></td>
+            <td><span class="score-pill ${scoreClass}">${score}</span></td>
+            <td style="font-variant-numeric:tabular-nums">$${(r.entry||0).toFixed(2)}</td>
+            <td style="color:var(--green);font-variant-numeric:tabular-nums">$${(r.target||0).toFixed(2)}</td>
+            <td class="${(r.target_pct||0)>=0?'positive':'negative'}" style="font-weight:700">${tgt}</td>
+            <td><span class="confidence-badge ${confClass}">${r.confidence||'Low'}</span></td>
+        </tr>`;
+    }).join('');
 }

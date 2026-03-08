@@ -769,6 +769,49 @@ def api_cache_stats():
         return jsonify({"error": str(e)})
 
 
+# ─── AI Intelligence ──────────────────────────────────────────────────────────
+
+@app.route("/api/ai-weekly")
+def api_ai_weekly():
+    """Top-3 weekly AI trades + Professor Mode advice (6-hour cache)."""
+    try:
+        from services.ai_intelligence import get_weekly_top3, get_professor_mode
+        force = request.args.get("refresh", "").lower() in ("1", "true")
+        weekly    = get_weekly_top3(force_refresh=force)
+        professor = get_professor_mode()
+        return jsonify({
+            "top3":      weekly["top3"],
+            "cached":    weekly["cached"],
+            "last_scan": weekly["last_scan"],
+            "professor": professor,
+        })
+    except Exception as e:
+        logging.error(f"/api/ai-weekly error: {e}")
+        return jsonify({"error": str(e), "top3": [], "professor": {}}), 500
+
+
+@app.route("/api/market-scanner")
+def api_market_scanner():
+    """Top-10 from large universe scan (24-hour disk cache + background thread)."""
+    try:
+        from services.ai_intelligence import get_market_scanner
+        force = request.args.get("refresh", "").lower() in ("1", "true")
+        return jsonify(get_market_scanner(force_refresh=force))
+    except Exception as e:
+        logging.error(f"/api/market-scanner error: {e}")
+        return jsonify({"error": str(e), "status": "error", "top10": []}), 500
+
+
+@app.route("/api/professor-mode")
+def api_professor_mode():
+    """Standalone Professor Mode endpoint."""
+    try:
+        from services.ai_intelligence import get_professor_mode
+        return jsonify(get_professor_mode())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ─── Entry Point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

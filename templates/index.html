@@ -45,6 +45,7 @@
             <button id="btn-pause" class="btn btn-icon btn-pause-icon" title="Pause auto-refresh">&#9646;&#9646;</button>
             <span id="scan-time" class="scan-time"></span>
             <button id="btn-scan" class="btn btn-primary">Scan Now</button>
+            <button id="btn-ai-weekly" class="btn btn-ai-weekly" title="Top 3 AI Trades This Week">&#129302; AI This Week</button>
             <button id="btn-backtest-nav" class="btn" title="Backtest Mode">Backtest</button>
             <button id="btn-portfolio" class="btn" title="Portfolio Tracker">Portfolio</button>
             <button id="btn-simulator" class="btn btn-sim" title="Trade Simulator">&#127919; Simulator</button>
@@ -590,6 +591,141 @@
             </div>
         </div>
     </div>
+
+    <!-- ══════════════════════════════════════ VIEW: AI WEEKLY INTELLIGENCE ═══ -->
+    <main id="view-ai-weekly" class="hidden">
+
+        <!-- Header -->
+        <div class="detail-header">
+            <button id="btn-back-ai-weekly" class="btn btn-back">&larr; Back</button>
+            <div>
+                <h2 style="margin:0">&#129302; AI Weekly Market Intelligence</h2>
+                <span style="font-size:11px;color:var(--text2)">5-Step Pipeline: Technical · News · Social · Risk · Final Score</span>
+            </div>
+            <button id="btn-refresh-ai-weekly" class="btn btn-primary btn-small">&#8635; Refresh AI Scan</button>
+        </div>
+
+        <!-- Loading state -->
+        <div id="ai-weekly-loading" class="ai-section-loading hidden">
+            <div class="ai-spinner"></div>
+            <p id="ai-weekly-loading-text">Running AI analysis pipeline...</p>
+        </div>
+
+        <!-- Professor Mode Panel -->
+        <div id="professor-panel" class="professor-panel hidden">
+            <div class="professor-header">
+                <span class="professor-icon">&#127891;</span>
+                <div>
+                    <div class="professor-title">Professor Mode — AI Trading Advice</div>
+                    <div class="professor-subtitle" id="professor-timestamp"></div>
+                </div>
+                <div class="professor-condition-badge" id="professor-condition-badge"></div>
+            </div>
+            <div class="professor-body">
+                <div class="professor-advice" id="professor-advice"></div>
+                <div class="professor-metrics">
+                    <div class="prof-metric">
+                        <div class="prof-metric-label">Market Condition</div>
+                        <div class="prof-metric-value" id="prof-market-condition"></div>
+                    </div>
+                    <div class="prof-metric">
+                        <div class="prof-metric-label">VIX Level</div>
+                        <div class="prof-metric-value" id="prof-vix"></div>
+                    </div>
+                    <div class="prof-metric">
+                        <div class="prof-metric-label">Risk Level</div>
+                        <div class="prof-metric-value" id="prof-risk-level"></div>
+                    </div>
+                    <div class="prof-metric">
+                        <div class="prof-metric-label">Best Sector</div>
+                        <div class="prof-metric-value" id="prof-best-sector"></div>
+                    </div>
+                </div>
+                <!-- Sector Strength Bars -->
+                <div class="sector-strength-section">
+                    <div class="sector-strength-title">Sector Strength (10-Day %)</div>
+                    <div id="sector-strength-bars" class="sector-bars"></div>
+                </div>
+                <!-- Strategy -->
+                <div class="professor-strategy">
+                    <span class="strategy-label">&#127919; Recommended Strategy:</span>
+                    <span id="prof-strategy"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top 3 Weekly AI Trades -->
+        <div class="ai-weekly-section">
+            <div class="ai-section-header">
+                <h3 class="ai-section-title">&#127881; Top 3 AI Swing Trades This Week</h3>
+                <span class="ai-section-sub" id="ai-weekly-last-scan"></span>
+            </div>
+            <div id="ai-weekly-content">
+                <div class="table-container">
+                    <table id="ai-weekly-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Stock</th>
+                                <th>Setup</th>
+                                <th>AI Score</th>
+                                <th>Entry</th>
+                                <th>Stop Loss</th>
+                                <th>Target</th>
+                                <th>Target %</th>
+                                <th>Confidence</th>
+                                <th>Tech</th>
+                                <th>News</th>
+                                <th>Social</th>
+                                <th>Risk</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ai-weekly-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="ai-divider"></div>
+
+        <!-- AI Market Scanner — Top 10 -->
+        <div class="ai-weekly-section">
+            <div class="ai-section-header">
+                <h3 class="ai-section-title">&#128202; Top 10 AI Swing Trades Today</h3>
+                <span class="ai-section-sub">Large-scale scan · ~{{UNIVERSE_COUNT}} stocks · Updated daily</span>
+            </div>
+
+            <!-- Scanner status bar -->
+            <div id="scanner-status-bar" class="scanner-status-bar hidden"></div>
+
+            <div id="scanner-content">
+                <div class="table-container">
+                    <table id="scanner-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Stock</th>
+                                <th>Setup</th>
+                                <th>Swing Score</th>
+                                <th>Entry</th>
+                                <th>Target</th>
+                                <th>Expected Return</th>
+                                <th>Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scanner-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="scanner-footer">
+                <button id="btn-refresh-scanner" class="btn btn-small">&#8635; Refresh Scanner</button>
+                <span class="scanner-last-scan" id="scanner-last-scan"></span>
+            </div>
+        </div>
+
+    </main>
 
     <!-- Toast Notifications -->
     <div id="toast-container" class="toast-container"></div>

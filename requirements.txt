@@ -4,3 +4,4 @@ yfinance
 requests
 numpy
 gunicorn
+vaderSentiment
